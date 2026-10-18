@@ -6,7 +6,7 @@ BASE = Path(__file__).resolve().parent
 payload = json.loads((BASE / "test_payload.json").read_text(encoding="utf-8"))
 with requests.Session() as session:
     session.trust_env = False  # avoids inherited proxy for localhost
-    response = session.post("http://127.0.0.1:5000/predict",
+    response = session.post("http://127.0.0.1:5050/predict",
                             json=payload, timeout=60)
     print("HTTP Status:", response.status_code)
     print("Response:", response.text)

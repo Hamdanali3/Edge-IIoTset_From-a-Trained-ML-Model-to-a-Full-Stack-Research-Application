@@ -1,0 +1,34 @@
+# Python and local environments
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+.env.*
+!.env.example
+
+# Angular dependencies and build outputs
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# OS / editor / notebooks
+.vscode/
+.DS_Store
+Thumbs.db
+.ipynb_checkpoints/
+
+# Large raw datasets (excluded from Git; sample_inputs.csv in data/ is tracked)
+dataset/*.csv
+dataset/*.pcap
+dataset/Attack traffic/
+dataset/Normal traffic/
+dataset/Selected dataset for ML and DL/
+
+# Large intermediate pkl in output/ (backend/models/model_bundle.joblib is tracked for CI)
+output/*.pkl
+
+# Local logs
+*.log

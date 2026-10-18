@@ -1,0 +1,57 @@
+<main class="shell">
+  <header>
+    <h1>ML Research Prediction Dashboard — Edge-IIoTset 15-Class IDS</h1>
+    <p>Teaching &amp; Research Prototype • Leakage-Sanitized PP-PSFE XGBoost Model (62 Features, 96.49% Accuracy)</p>
+  </header>
+  @if (deployedStatic) {
+    <aside class="notice">Static GitHub Pages demonstration only.
+      Predictions require Flask and Angular running locally.</aside>
+  }
+  <section class="preset-bar">
+    <span><strong>Quick Load Sample Packet:</strong></span>
+    @for (pName of presetNames; track pName) {
+      <button type="button" class="secondary-btn" (click)="loadPreset(pName)">
+        Load {{pName}}
+      </button>
+    }
+    <button type="button" class="secondary-btn clear-btn" (click)="clearForm()">
+      Clear All Fields
+    </button>
+  </section>
+  <form (ngSubmit)="submit()">
+    <h2>Model input features ({{fields.length}})</h2>
+    <div class="grid">
+      @for (field of fields; track field.name) {
+        <label>{{field.label}}
+          @if (field.kind === 'number') {
+            <input type="number" step="any" [name]="field.name"
+              [min]="field.min ?? null" [max]="field.max ?? null"
+              [(ngModel)]="values[field.name]" [required]="field.required" />
+          } @else {
+            <select [name]="field.name" [(ngModel)]="values[field.name]"
+              [required]="field.required">
+              <option [ngValue]="null">Select a value</option>
+              @for (option of field.options ?? []; track option) {
+                <option [ngValue]="option">{{option}}</option>
+              }
+            </select>
+          }
+        </label>
+      }
+    </div>
+    <button type="submit" [disabled]="loading || deployedStatic">
+      {{loading ? 'Predicting…' : 'Run local prediction'}}
+    </button>
+  </form>
+  @if (error) { <p class="error" role="alert">{{error}}</p> }
+  @if (result) {
+    <section class="result">
+      <h2>Prediction result</h2>
+      <p>Predicted Traffic Class: <strong>{{result.prediction}}</strong></p>
+      @if (result.probabilities) {
+        <p>Class probabilities (15 classes): {{result.probabilities.join(', ')}}</p>
+      }
+      <p>{{result.disclaimer}}</p>
+    </section>
+  }
+</main>

@@ -1,7 +1,7 @@
 from pathlib import Path
 import joblib
 import pandas as pd
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 
 BASE = Path(__file__).resolve().parent
 BUNDLE = joblib.load(BASE / "models/model_bundle.joblib")
@@ -23,6 +23,7 @@ def index():
     body {{ font-family: system-ui, -apple-system, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1.25rem; color: #0f172a; background: #f8fafc; }}
     .card {{ background: #fff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }}
     .badge {{ display: inline-block; background: #dcfce7; color: #166534; font-weight: 700; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.85rem; }}
+    .btn {{ display: inline-block; margin-top: 0.75rem; background: #16a34a; color: #fff; padding: 0.6rem 1.1rem; border-radius: 8px; font-weight: 700; text-decoration: none; }}
     code {{ background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.9rem; }}
     a {{ color: #1d4ed8; font-weight: 600; text-decoration: none; }}
     a:hover {{ text-decoration: underline; }}
@@ -40,11 +41,19 @@ def index():
       <li><strong>Health Check Endpoint (GET):</strong> <a href="/health"><code>http://127.0.0.1:5050/health</code></a></li>
       <li><strong>Prediction Endpoint (POST):</strong> <code>http://127.0.0.1:5050/predict</code></li>
       <li><strong>Interactive Angular 22 Research Dashboard:</strong> <a href="http://localhost:4200"><code>http://localhost:4200</code></a></li>
+      <li><strong>IEEE Research Paper (PDF • 450 DPI):</strong> <a href="/download-paper"><code>http://127.0.0.1:5050/download-paper</code></a></li>
     </ul>
+    <a class="btn" href="/download-paper">⬇ Download IEEE Research Paper (PDF • 450 DPI)</a>
   </div>
 </body>
 </html>"""
     return html, 200
+
+
+@app.get("/download-paper")
+def download_paper():
+    pdf_path = BASE.parent / "docs" / "IEEE_Research_Paper_Hamdan_Ali_233120.pdf"
+    return send_file(pdf_path, as_attachment=True, download_name="IEEE_Research_Paper_Hamdan_Ali_233120.pdf")
 
 
 @app.get("/health")

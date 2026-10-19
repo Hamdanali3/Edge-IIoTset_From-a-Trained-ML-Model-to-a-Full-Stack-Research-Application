@@ -1,28 +1,154 @@
 <main class="shell">
-  <header>
-    <h1>ML Research Prediction Dashboard — Edge-IIoTset 15-Class IDS</h1>
-    <p>Teaching &amp; Research Prototype • Leakage-Sanitized PP-PSFE XGBoost Model (62 Features, 96.49% Accuracy)</p>
+  <header class="hero">
+    <div class="hero-badge">IEEE Access Edge-IIoTset Benchmark • 15-Class Intrusion Detection System</div>
+    <h1>Full-Stack ML Research Application — PP-PSFE XGBoost IDS</h1>
+    <p class="subtitle">
+      <strong>Novel Research Gap Solved:</strong> Elimination of Mixed-Type Serialization Leakage (<code>"0"</code> vs <code>"0.0"</code>) +
+      <strong>Privacy-Preserving Protocol-Header Structural Feature Engineering (PP-PSFE)</strong> across 62 features.
+    </p>
   </header>
+
   @if (deployedStatic) {
-    <aside class="notice">Static GitHub Pages demonstration only.
-      Predictions require Flask and Angular running locally.</aside>
+    <aside class="notice">
+      <strong>Static GitHub Pages Mode:</strong> GitHub Pages hosts only the compiled Angular 22 browser bundle (Flask runs locally on <code>http://127.0.0.1:5050</code>).
+      Interactive preset replay is active below so you can inspect the trained XGBoost model's real outputs here on GitHub Pages.
+    </aside>
   }
-  <section class="preset-bar">
-    <span><strong>Quick Load Sample Packet:</strong></span>
-    @for (pName of presetNames; track pName) {
-      <button type="button" class="secondary-btn" (click)="loadPreset(pName)">
-        Load {{pName}}
-      </button>
-    }
-    <button type="button" class="secondary-btn clear-btn" (click)="clearForm()">
-      Clear All Fields
-    </button>
+
+  <section class="card research-card">
+    <h2>1. Four-Model Research Benchmark Comparison (Held-Out Test Split: 30,440 Flows)</h2>
+    <div class="table-wrap">
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>Machine Learning Model</th>
+            <th>Test Accuracy</th>
+            <th>Macro F1-Score</th>
+            <th>ROC-AUC (Wt)</th>
+            <th>PR-AUC (Macro)</th>
+            <th>Overfitting Gap</th>
+            <th>Inference Latency</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of benchmarks; track m.name) {
+            <tr [class.best-row]="m.best">
+              <td>
+                <strong>{{m.name}}</strong>
+                @if (m.best) { <span class="winner-pill">SELECTED BEST</span> }
+              </td>
+              <td><strong>{{m.accuracy}}</strong></td>
+              <td>{{m.macroF1}}</td>
+              <td>{{m.rocAuc}}</td>
+              <td>{{m.prAuc}}</td>
+              <td>{{m.overfitGap}}</td>
+              <td>{{m.latency}}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   </section>
-  <form (ngSubmit)="submit()">
-    <h2>Model input features ({{fields.length}})</h2>
+
+  <section class="card control-card">
+    <h2>2. Interactive Real-Time Packet Classification (Click Any Traffic Scenario)</h2>
+    <p class="helper-text">
+      Select a held-out IIoT network packet preset below to populate all 62 features and run instant inference through the trained <strong>XGBoost Pipeline</strong>:
+    </p>
+    <div class="preset-bar">
+      @for (pName of presetNames; track pName) {
+        <button type="button"
+          class="preset-btn"
+          [class.active-preset]="activePreset === pName"
+          [class.preset-normal]="pName === 'Normal'"
+          [class.preset-attack]="pName !== 'Normal'"
+          (click)="loadPreset(pName, true)">
+          @if (pName === 'Normal') {
+            ✓ Load Normal Telemetry (Safe)
+          } @else {
+            ⚠ Load {{pName}} Attack
+          }
+        </button>
+      }
+      <button type="button" class="secondary-btn clear-btn" (click)="clearForm()">
+        Clear All 62 Fields
+      </button>
+    </div>
+
+    @if (error) {
+      <p class="error" role="alert">{{error}}</p>
+    }
+
+    @if (result) {
+      <section class="result-panel" [class.result-safe]="isNormalPrediction" [class.result-attack]="!isNormalPrediction">
+        <div class="result-header">
+          <div>
+            <span class="verdict-badge" [class.badge-safe]="isNormalPrediction" [class.badge-attack]="!isNormalPrediction">
+              {{isNormalPrediction ? '✓ SAFE / NORMAL IIoT TRAFFIC' : '🚨 CYBERATTACK DETECTED (INTRUSION ALERT)'}}
+            </span>
+            <h3 class="predicted-title">
+              Predicted Class: <span>{{result.prediction}}</span>
+              <small>(Class Index #{{result.predicted_class_index}})</small>
+            </h3>
+          </div>
+          <div class="confidence-box">
+            <span class="conf-label">Model Confidence</span>
+            <strong class="conf-value">{{confidencePercent}}</strong>
+          </div>
+        </div>
+
+        <div class="analysis-grid">
+          <div class="analysis-item">
+            <strong>Threat Category:</strong>
+            <p>{{currentClassInfo.category}}</p>
+          </div>
+          <div class="analysis-item">
+            <strong>Protocol &amp; PP-PSFE Signature Analysis:</strong>
+            <p>{{currentClassInfo.explanation}}</p>
+          </div>
+          <div class="analysis-item">
+            <strong>Recommended Security Action:</strong>
+            <p>{{currentClassInfo.action}}</p>
+          </div>
+        </div>
+
+        @if (topProbabilities.length) {
+          <div class="prob-section">
+            <h4>Top-5 Class Probability Distribution (Across 15 Edge-IIoTset Classes)</h4>
+            @for (bar of topProbabilities; track bar.name) {
+              <div class="prob-row">
+                <span class="prob-name">{{bar.name}}</span>
+                <div class="prob-track">
+                  <div class="prob-fill"
+                    [class.fill-safe]="bar.name === 'Normal'"
+                    [class.fill-attack]="bar.name !== 'Normal'"
+                    [style.width.%]="bar.prob * 100"></div>
+                </div>
+                <span class="prob-pct">{{bar.percent}}</span>
+              </div>
+            }
+          </div>
+        }
+        <p class="disclaimer">{{result.disclaimer}}</p>
+      </section>
+    }
+  </section>
+
+  <form class="card" (ngSubmit)="submit()">
+    <div class="form-header">
+      <div>
+        <h2>3. Packet Input Features ({{fields.length}} Features: 38 Protocol + 24 PP-PSFE)</h2>
+        <p class="helper-text">Modify any feature value below and click <strong>Run Prediction</strong> to test custom network flow parameters.</p>
+      </div>
+      <button type="submit" class="primary-btn" [disabled]="loading">
+        {{loading ? 'Predicting…' : 'Run Prediction Now'}}
+      </button>
+    </div>
+
     <div class="grid">
       @for (field of fields; track field.name) {
-        <label>{{field.label}}
+        <label class="field-label">
+          <span class="field-title">{{field.label}}</span>
           @if (field.kind === 'number') {
             <input type="number" step="any" [name]="field.name"
               [min]="field.min ?? null" [max]="field.max ?? null"
@@ -39,19 +165,11 @@
         </label>
       }
     </div>
-    <button type="submit" [disabled]="loading || deployedStatic">
-      {{loading ? 'Predicting…' : 'Run local prediction'}}
-    </button>
+
+    <div class="form-footer">
+      <button type="submit" class="primary-btn" [disabled]="loading">
+        {{loading ? 'Predicting…' : 'Run Prediction Now'}}
+      </button>
+    </div>
   </form>
-  @if (error) { <p class="error" role="alert">{{error}}</p> }
-  @if (result) {
-    <section class="result">
-      <h2>Prediction result</h2>
-      <p>Predicted Traffic Class: <strong>{{result.prediction}}</strong></p>
-      @if (result.probabilities) {
-        <p>Class probabilities (15 classes): {{result.probabilities.join(', ')}}</p>
-      }
-      <p>{{result.disclaimer}}</p>
-    </section>
-  }
 </main>

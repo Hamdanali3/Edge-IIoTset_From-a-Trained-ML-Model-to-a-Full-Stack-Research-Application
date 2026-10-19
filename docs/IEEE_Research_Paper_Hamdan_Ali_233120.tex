@@ -1,0 +1,147 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{url}
+
+\begin{document}
+
+\title{Eliminating Serialization Leakage and Recovering Fine-Grained Multiclass Discrimination in IIoT Intrusion Detection via Privacy-Preserving Protocol-Header Structural Feature Engineering}
+
+\author{\IEEEauthorblockN{Hamdan Ali}
+\IEEEauthorblockA{\textit{Department of Creative Technologies (Software Engineering)} \\
+\textit{Faculty of Computing and Artificial Intelligence, Air University}\\
+Islamabad, Pakistan \\
+Roll No.: 233120 \,|\, Section: F-23-BSSE-B \\
+Email: Hamdanaly651@gmail.com}
+}
+
+\maketitle
+
+\begin{abstract}
+Machine learning-based Intrusion Detection Systems (IDS) evaluated on public Industrial Internet of Things (IIoT) benchmarks frequently report near-perfect classification accuracies ($>99.8\%$). However, a forensic packet- and file-level audit of the widely adopted \textbf{Edge-IIoTset} benchmark conducted in this study reveals that such figures are substantially inflated by three previously undocumented or under-addressed dataset artifacts: (i) \textbf{mixed-type CSV serialization leakage}, where numeric zero values across five HTTP and MQTT protocol fields (\texttt{http.request.method}, \texttt{http.referer}, \texttt{http.request.version}, \texttt{mqtt.conack.flags}, and \texttt{mqtt.protoname}) are unevenly serialized as string \texttt{"0"} versus floating-point \texttt{"0.0"} across attack capture files due to multi-chunk \texttt{pandas} concatenation; (ii) \textbf{TShark delimiter-shift corruption}, where unescaped commas inside multicast DNS query strings shift string literals into numeric length columns (\texttt{dns.qry.name.len}); and (iii) \textbf{testbed topology memorization} via static IP addresses, capture timestamps, and raw hexadecimal payloads. Conversely, when recent studies strip all 15 identifier, port, and raw payload columns to enforce network-agnostic generalization, 15-class classification accuracy collapses to $84\%\text{--}88\%$ due to severe confusion among application-layer web attacks (\texttt{SQL\_injection}, \texttt{XSS}, \texttt{Uploading}, \texttt{Password}) and transport-layer \texttt{DDoS\_HTTP}. To resolve this accuracy--generalization trade-off without reintroducing identity leakage, we propose \textbf{Privacy-Preserving Protocol-Header Structural Feature Engineering (PP-PSFE)}, a deterministic transformation framework that extracts 24 non-identifying structural, geometric, and information-theoretic features---including canonical service/ephemeral port disentanglement, TCP option byte-length and timestamp indicators, Shannon byte entropy of raw TCP payloads, and application-layer URI query/payload boundary metrics---prior to discarding raw identifiers. Combined with 38 sanitized core protocol fields ($d=62$ total features across $N=152,386$ deduplicated flows), we conduct a strictly leakage-free stratified benchmark of four distinct learning paradigms: Multinomial Logistic Regression, Random Forest, LightGBM, and Regularized Second-Order XGBoost. Experimental results demonstrate that while the linear baseline plateaus at $84.87\%$ test accuracy ($0.8419$ Macro-F1), \textbf{PP-PSFE + XGBoost} achieves \textbf{96.49\% test accuracy}, \textbf{0.9618 Macro-F1}, \textbf{0.9991 weighted ROC-AUC}, and \textbf{0.9874 Macro PR-AUC} with a minimal $+0.0057$ generalization gap and $3.54\text{ ms}$ batch inference latency per $1,000$ flows. Exact game-theoretic \textbf{TreeSHAP} attribution confirms that our engineered PP-PSFE features contribute \textbf{57.1\% of total marginal log-odds magnitude} ($73.88\%$ of total split-gain importance). Finally, to bridge academic evaluation and industrial deployment, the fitted preprocessing-and-inference pipeline is packaged into a zero-leakage full-stack microservice architecture (\textbf{Flask REST API + Angular 22 standalone diagnostic interface + automated GitHub Actions CI/CD}).
+\end{abstract}
+
+\begin{IEEEkeywords}
+Industrial Internet of Things (IIoT), Intrusion Detection System (IDS), Edge-IIoTset, Data Leakage Sanitization, Protocol-Header Feature Engineering, XGBoost, Explainable AI (TreeSHAP), Full-Stack MLOps.
+\end{IEEEkeywords}
+
+\section{Introduction}
+The rapid convergence of Operational Technology (OT) and Information Technology (IT) within modern smart manufacturing, automated power grids, and industrial telemetry networks has exposed formerly air-gapped Programmable Logic Controllers (PLCs), Message Queuing Telemetry Transport (MQTT) brokers, and edge gateways to sophisticated multi-vector cyberattacks \cite{sisinni2018, jayalaxmi2021}. Unlike conventional enterprise networks where traffic is dominated by high-entropy encrypted web browsing, Industrial IoT (IIoT) edge segments carry heterogeneous, latency-sensitive machine-to-machine (M2M) flows spanning lightweight publish-subscribe telemetry (MQTT over TCP port 1883), Modbus/TCP register polling, address resolution (ARP), multicast service discovery (mDNS), and RESTful supervisory HTTP APIs \cite{zolanvari2019}.
+
+To evaluate data-driven Intrusion Detection Systems (IDS) under realistic multi-protocol conditions, Ferrag \textit{et al.} \cite{ferrag2022} introduced \textbf{Edge-IIoTset}, a comprehensive seven-layer testbed dataset encompassing more than 10 IoT sensor types and 14 distinct cyberattack categories alongside benign telemetry. Despite numerous studies reporting $99.5\%\text{--}99.99\%$ 15-class accuracy on Edge-IIoTset \cite{tareq2022, khacha2022, alshehri2023}, security practitioners repeatedly observe that models trained on public packet-capture (PCAP) benchmarks fail when deployed on live edge gateways whose IP subnetting, capture window, or ephemeral port allocation differs from the laboratory testbed \cite{flood2024, apruzzese2023}.
+
+Our forensic inspection of \texttt{ML-EdgeIIoT-dataset.csv} ($157,800$ rows, $63$ columns) uncovered three severe structural pathologies:
+\begin{enumerate}
+    \item \textbf{Mixed-Type CSV Serialization Leakage (\texttt{"0"} vs. \texttt{"0.0"}):} When separate PCAP-derived CSV chunks were concatenated by the dataset authors, missing protocol fields padded with zero were exported as floating-point \texttt{"0.0"} in numeric chunks (e.g., $100\%$ of \texttt{DDoS\_UDP} and \texttt{DDoS\_ICMP} records in \texttt{http.request.method}), but exported as string \texttt{"0"} in chunks containing string values (e.g., $93.5\%$ of \texttt{DDoS\_HTTP} and $96.8\%$ of \texttt{XSS} records). Naive categorical encoding assigns distinct integer indices to \texttt{"0"} and \texttt{"0.0"}, allowing classifiers to memorize which CSV chunk a row originated from.
+    \item \textbf{TShark Delimiter-Shift Corruption:} In $93$ records, unescaped commas inside multicast DNS query strings (\texttt{"\_googlecast.\_tcp.local,..."}) shifted string literals into the numeric length column \texttt{dns.qry.name.len}.
+    \item \textbf{The Sanitization--Accuracy Collapse Dilemma:} When static identifiers (\texttt{ip.src\_host}, \texttt{ip.dst\_host}, \texttt{frame.time}), raw ports (\texttt{tcp.srcport}, \texttt{tcp.dstport}), and raw hexadecimal/URI strings (\texttt{tcp.payload}, \texttt{tcp.options}, \texttt{http.file\_data}, \texttt{http.request.full\_uri}) are dropped to enforce network-agnostic generalization \cite{lazzarini2023, ullah2024}, 15-class accuracy collapses to $84\%\text{--}88\%$ due to severe confusion across web application attacks.
+\end{enumerate}
+
+To resolve this trade-off, this paper proposes \textbf{Privacy-Preserving Protocol-Header Structural Feature Engineering (PP-PSFE)}, extracting 24 non-identifying geometric, entropy, and application-layer structural features prior to discarding raw identifiers, and deploys the winning regularized XGBoost pipeline inside a verified Flask + Angular 22 full-stack research application.
+
+\section{Proposed Methodology: Leakage Sanitization and PP-PSFE}
+
+\subsection{Canonical Sanitization Operator}
+Before feature encoding or splitting, every protocol token $v$ is normalized via a deterministic operator $\mathcal{S}(v)$ that maps $\{\text{NaN}, \text{null}, \text{""}, \text{"0"}, \text{"0.0"}, \text{"0.000000"}\}$ and zero-filled hexadecimal strings (\texttt{"0x00000000"}) to a single canonical token \texttt{"0"}. Corrupted numeric columns (\texttt{dns.qry.name.len}, \texttt{dns.qry.qu}) are coerced via \texttt{pd.to\_numeric(..., errors='coerce')} with zero imputation, and 8 constant zero-variance columns (\texttt{icmp.unused}, \texttt{http.tls\_port}, \texttt{dns.qry.type}, \texttt{mqtt.msg\_decoded\_as}, \texttt{mbtcp.len}, \texttt{mbtcp.trans\_id}, \texttt{mbtcp.unit\_id}, \texttt{ntp.chrom}) are removed.
+
+\subsection{Mathematical Formulation of PP-PSFE (24 Features)}
+\subsubsection{Group A: Transport-Layer Port Role Disentanglement (9 Features)}
+To prevent memorizing random client ephemeral ports while preserving target daemon identity, raw TCP ports $(p_{\text{src}}, p_{\text{dst}})$ are projected onto direction-invariant coordinates:
+\begin{equation}
+p_{\text{service}} = \min(p_{\text{src}}, p_{\text{dst}}), \quad p_{\text{ephemeral}} = \max(p_{\text{src}}, p_{\text{dst}})
+\end{equation}
+\begin{equation}
+\Delta p_{\text{span}} = |p_{\text{src}} - p_{\text{dst}}|, \quad d_{\text{pkt}} = \mathbb{I}(p_{\text{src}} < p_{\text{dst}}) - \mathbb{I}(p_{\text{src}} > p_{\text{dst}})
+\end{equation}
+augmented by five binary service-role indicators: \texttt{psfe\_is\_http\_service} ($\{80, 443, 8000, 8080\}$), \texttt{psfe\_is\_mqtt\_service} ($\{1883, 8883\}$), \texttt{psfe\_is\_iot\_c2\_service}, \texttt{psfe\_is\_boundary\_probe} ($0 < p_{\text{service}} \le 1024$), and \texttt{psfe\_udp\_active}.
+
+\subsubsection{Group B: Information-Theoretic TCP Option \& Payload Structure (6 Features)}
+For a hexadecimal payload string decoded into byte sequence $B = (b_1, \dots, b_m)$ of length $m$, we compute the empirical Shannon byte entropy:
+\begin{equation}
+H(B) = -\sum_{k=0}^{255} \hat{p}_k \log_2(\hat{p}_k + \varepsilon), \quad \hat{p}_k = \frac{1}{m}\sum_{t=1}^{m} \mathbb{I}(b_t = k)
+\end{equation}
+yielding \texttt{psfe\_tcp\_opt\_bytelen}, \texttt{psfe\_tcp\_opt\_has\_mss} (RFC 793 Kind=2 prefix \texttt{0204}), \texttt{psfe\_tcp\_opt\_has\_ts} (RFC 7323 Kind=8 token \texttt{080a}), \texttt{psfe\_tcp\_pay\_bytelen}, \texttt{psfe\_tcp\_pay\_first\_byte}, and \texttt{psfe\_tcp\_pay\_entropy}.
+
+\subsubsection{Group C: Application-Layer Structural Signatures (9 Features)}
+Before dropping raw URI and payload strings, we extract host-stripped structural lengths (\texttt{psfe\_http\_uri\_path\_len}, \texttt{psfe\_http\_query\_len}, \texttt{psfe\_http\_file\_data\_len}, \texttt{psfe\_mqtt\_msg\_bytelen}) and five lexical class indicators (\texttt{psfe\_app\_sqli\_flag}, \texttt{psfe\_app\_xss\_flag}, \texttt{psfe\_app\_upload\_flag}, \texttt{psfe\_app\_auth\_flag}, \texttt{psfe\_app\_timeout\_flag}).
+
+\section{Experimental Results and Explainability}
+
+\begin{table*}[t]
+\centering
+\caption{Overall Performance Comparison of the Four Evaluated Classifiers on the Held-Out Stratified Test Split ($N_{\text{test}} = 30,478$)}
+\label{tab:overall}
+\begin{tabular}{lcccccccccc}
+\toprule
+\textbf{Classifier Architecture} & \textbf{Train Acc.} & \textbf{Test Acc.} & \textbf{Precision (Wt)} & \textbf{Recall (Wt)} & \textbf{F1 (Wt)} & \textbf{Macro F1} & \textbf{ROC-AUC} & \textbf{PR-AUC} & \textbf{Overfit Gap} & \textbf{Latency (ms/1k)} \\
+\midrule
+Logistic Regression (Baseline) & 0.8503 & 0.8487 & 0.8736 & 0.8487 & 0.8479 & 0.8419 & 0.9829 & 0.8656 & +0.0016 & \textbf{0.43 ms} \\
+Random Forest (150 Trees) & 0.9458 & 0.9438 & 0.9455 & 0.9438 & 0.9438 & 0.9414 & 0.9978 & 0.9768 & +0.0020 & 10.35 ms \\
+LightGBM (Leaf-Wise GBDT) & 0.9843 & 0.9633 & 0.9640 & 0.9633 & 0.9632 & 0.9596 & \textbf{0.9991} & \textbf{0.9888} & +0.0210 & 18.35 ms \\
+\textbf{XGBoost + PP-PSFE (Proposed)} & \textbf{0.9706} & \textbf{0.9649} & \textbf{0.9663} & \textbf{0.9649} & \textbf{0.9649} & \textbf{0.9618} & \textbf{0.9991} & 0.9874 & \textbf{+0.0057} & 3.54 ms \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table}[t]
+\centering
+\caption{Per-Class F1-Score Comparison Across All 15 Traffic Classes ($N_{\text{test}}=30,478$)}
+\label{tab:perclass}
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Traffic Class} & \textbf{Support} & \textbf{LR} & \textbf{RF} & \textbf{LGBM} & \textbf{XGBoost} \\
+\midrule
+\texttt{Backdoor} & 1,973 & 0.9921 & 0.9997 & 0.9997 & \textbf{0.9997} \\
+\texttt{DDoS\_HTTP} & 2,112 & 0.6067 & 0.7780 & 0.8527 & \textbf{0.8562} \\
+\texttt{DDoS\_ICMP} & 2,619 & 0.9944 & \textbf{0.9996} & \textbf{0.9996} & 0.9969 \\
+\texttt{DDoS\_TCP} & 2,050 & 0.9634 & \textbf{1.0000} & \textbf{1.0000} & \textbf{1.0000} \\
+\texttt{DDoS\_UDP} & 2,900 & \textbf{1.0000} & \textbf{1.0000} & 0.9998 & 0.9998 \\
+\texttt{Fingerprinting} & 171 & 0.9140 & 0.9855 & \textbf{0.9912} & 0.9468 \\
+\texttt{MITM} & 78 & \textbf{1.0000} & 0.9750 & 0.9512 & \textbf{1.0000} \\
+\texttt{Normal} & 4,831 & \textbf{1.0000} & \textbf{1.0000} & 0.9999 & 0.9997 \\
+\texttt{Password} & 1,996 & 0.4371 & 0.8085 & 0.8806 & \textbf{0.8875} \\
+\texttt{Port\_Scanning} & 1,784 & 0.9606 & \textbf{0.9997} & \textbf{0.9997} & \textbf{0.9997} \\
+\texttt{Ransomware} & 1,938 & 0.9918 & \textbf{1.0000} & \textbf{1.0000} & \textbf{1.0000} \\
+\texttt{SQL\_injection} & 2,057 & 0.5746 & 0.8392 & 0.8977 & \textbf{0.9010} \\
+\texttt{Uploading} & 2,047 & 0.6354 & 0.8826 & 0.9214 & \textbf{0.9294} \\
+\texttt{Vuln\_scanner} & 2,012 & 0.9003 & 0.9749 & 0.9801 & \textbf{0.9821} \\
+\texttt{XSS} & 1,910 & 0.6585 & 0.8775 & 0.9200 & \textbf{0.9285} \\
+\midrule
+\textbf{Macro F1} & \textbf{30,478} & \textbf{0.8419} & \textbf{0.9414} & \textbf{0.9596} & \textbf{0.9618} \\
+\textbf{Weighted F1} & \textbf{30,478} & \textbf{0.8479} & \textbf{0.9438} & \textbf{0.9632} & \textbf{0.9649} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+After deduplication ($157,800 \rightarrow 152,386$ unique flows), a stratified 80/20 split yields $121,908$ training flows and $30,478$ held-out test flows. Table~\ref{tab:overall} and Table~\ref{tab:perclass} summarize the empirical results. Regularized second-order \textbf{XGBoost} achieves the highest test accuracy (\textbf{96.49\%}) and Macro-F1 (\textbf{0.9618}), improving upon Logistic Regression by $+11.62\%$ accuracy and $+11.99\%$ Macro-F1, and outperforming Random Forest by $+2.11\%$ accuracy while maintaining a $+0.0057$ overfitting gap ($3.7\times$ tighter than LightGBM's $+0.0210$) and $5.2\times$ faster inference than LightGBM ($3.54\text{ ms}$ vs. $18.35\text{ ms}$ per $1,000$ flows).
+
+Exact native C++ \textbf{TreeSHAP} (\texttt{pred\_contribs=True}) and gain attribution confirm that the 24 engineered PP-PSFE features contribute \textbf{73.88\% of total XGBoost split gain} and \textbf{57.1\% of total mean absolute TreeSHAP magnitude}, led by \texttt{psfe\_is\_mqtt\_service} ($24.00\%$ gain), \texttt{psfe\_http\_file\_data\_len} ($19.20\%$ gain), \texttt{psfe\_tcp\_opt\_has\_ts} ($5.74\%$ gain), and \texttt{psfe\_service\_port} ($4.46\%$ gain).
+
+\section{Full-Stack MLOps Deployment and Conclusion}
+To operationalize the trained 62-feature XGBoost model, we encapsulated the fitted \texttt{ColumnTransformer}, \texttt{StandardScaler}, and \texttt{XGBClassifier} into a self-contained \texttt{scikit-learn} pipeline (\texttt{model\_bundle.joblib}) served via a \textbf{Flask REST API} (\texttt{GET /health}, \texttt{POST /predict}) and an interactive \textbf{Angular 22 standalone diagnostic dashboard} verified by automated \textbf{GitHub Actions CI/CD} workflows (\texttt{pytest} + Angular production build + GitHub Pages deployment). This work demonstrates that careful forensic sanitization paired with protocol-header structural feature engineering resolves the accuracy--generalization trade-off in IIoT intrusion detection.
+
+\begin{thebibliography}{16}
+\bibitem{sisinni2018} E. Sisinni, A. Saifullah, S. Han, U. Jennehag, and M. Gidlund, ``Industrial Internet of Things: Challenges, opportunities, and directions,'' \textit{IEEE Trans. Ind. Informat.}, vol. 14, no. 11, pp. 4724--4734, Nov. 2018.
+\bibitem{jayalaxmi2021} P. Jayalaxmi \textit{et al.}, ``A taxonomy of security issues in Industrial Internet-of-Things,'' \textit{IEEE Access}, vol. 9, pp. 25344--25359, 2021.
+\bibitem{zolanvari2019} M. Zolanvari \textit{et al.}, ``Machine learning-based network vulnerability analysis of Industrial Internet of Things,'' \textit{IEEE Internet Things J.}, vol. 6, no. 4, pp. 6822--6834, Aug. 2019.
+\bibitem{ferrag2022} M. A. Ferrag, O. Friha, D. Hamouda, L. Maglaras, and H. Janicke, ``Edge-IIoTset: A new comprehensive realistic cyber security dataset of IoT and IIoT applications for centralized and federated learning,'' \textit{IEEE Access}, vol. 10, pp. 40281--40306, 2022.
+\bibitem{tareq2022} I. Tareq \textit{et al.}, ``Analysis of TON-IoT, UNW-NB15, and Edge-IIoT datasets using DL in cybersecurity for IoT,'' \textit{Applied Sciences}, vol. 12, no. 19, p. 9572, Sep. 2022.
+\bibitem{khacha2022} A. Khacha \textit{et al.}, ``Hybrid deep learning-based intrusion detection system for Industrial Internet of Things,'' in \textit{Proc. IEEE ISIA}, Nov. 2022, pp. 1--6.
+\bibitem{alshehri2023} M. S. Alshehri \textit{et al.}, ``Deep learning-based intrusion detection for IIoT networks on Edge-IIoTset,'' \textit{Comput. Mater. Continua}, vol. 75, no. 2, pp. 3121--3138, 2023.
+\bibitem{lazzarini2023} R. Lazzarini, H. Tianfield, and V. Charissis, ``A stacking ensemble of deep learning models for IoT intrusion detection,'' \textit{Knowl.-Based Syst.}, vol. 279, p. 110941, Nov. 2023.
+\bibitem{ullah2024} S. Ullah \textit{et al.}, ``A new intrusion detection system for the Internet of Things via deep convolutional neural network and feature engineering,'' \textit{Sensors}, vol. 24, no. 2, p. 495, Jan. 2024.
+\bibitem{flood2024} R. Flood, D. Aspinall, and M. D. Corner, ``On the perils of feature leakage in network intrusion detection benchmarks,'' \textit{IEEE Trans. Dependable Secure Comput.}, vol. 21, no. 2, pp. 812--826, 2024.
+\bibitem{apruzzese2023} G. Apruzzese \textit{et al.}, ``The role of machine learning in cybersecurity,'' \textit{Digit. Threats Res. Pract.}, vol. 4, no. 1, pp. 1--38, Mar. 2023.
+\bibitem{breiman2001} L. Breiman, ``Random forests,'' \textit{Mach. Learn.}, vol. 45, no. 1, pp. 5--32, Oct. 2001.
+\bibitem{ke2017} G. Ke \textit{et al.}, ``LightGBM: A highly efficient gradient boosting decision tree,'' in \textit{Proc. NeurIPS}, vol. 30, 2017, pp. 3146--3154.
+\bibitem{chen2016} T. Chen and C. Guestrin, ``XGBoost: A scalable tree boosting system,'' in \textit{Proc. ACM SIGKDD}, Aug. 2016, pp. 785--794.
+\bibitem{lundberg2020} S. M. Lundberg \textit{et al.}, ``From local explanations to global understanding with explainable AI for trees,'' \textit{Nature Mach. Intell.}, vol. 2, no. 1, pp. 56--67, Jan. 2020.
+\end{thebibliography}
+
+\end{document}

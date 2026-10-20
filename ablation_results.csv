@@ -1,0 +1,11 @@
+split,variant,features,accuracy,macro_f1
+random stratified,core only (38),38,0.8897020215279601,0.8900040491914318
+random stratified,core + PP-PSFE (62),62,0.9657390391178787,0.9620612947926342
+random stratified,core + PP-PSFE minus Group A,53,0.9094906799684956,0.9022775021057957
+random stratified,core + PP-PSFE minus raw-port features,59,0.9263586243108427,0.9236810347112466
+random stratified,core minus udp.stream/tcp.seq/tcp.ack/icmp.seq_le + PP-PSFE,58,0.908538986610659,0.8704853575123253
+time-ordered,core only (38),38,0.8793188305935623,0.881325594487143
+time-ordered,core + PP-PSFE (62),62,0.7940085966466516,0.7638358360580483
+time-ordered,core + PP-PSFE minus Group A,53,0.9021229123601404,0.8960253585472039
+time-ordered,core + PP-PSFE minus raw-port features,59,0.9169865800439676,0.9151102082995833
+time-ordered,core minus udp.stream/tcp.seq/tcp.ack/icmp.seq_le + PP-PSFE,58,0.6638776782491715,0.6037209246078716

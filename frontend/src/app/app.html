@@ -1,183 +1,748 @@
-<main class="shell">
-  <header class="hero">
-    <div class="hero-top">
-      <div>
-        <div class="hero-badge">IEEE Access Edge-IIoTset Benchmark • 15-Class Intrusion Detection System</div>
-        <h1>Full-Stack ML Research Application — PP-PSFE XGBoost IDS</h1>
+<div class="app-shell">
+  <!-- Top Utility Header -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3l8 3.5v5.5c0 5.1-3.4 9.5-8 11-4.6-1.5-8-5.9-8-11V6.5L12 3z"/>
+            <path d="M7.5 12h2.2l1.6-3 2.1 6 1.6-3h2.5"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">Edge-IIoTset Packet Inspector</h1>
+          <span class="brand-sub">XGBoost + PP-PSFE · 62 Features · 15 Classes</span>
+        </div>
       </div>
-      <a class="pdf-download-btn" href="Hamdan_Ali_PP-PSFE_IEEE_Paper.pdf" download="Hamdan_Ali_PP-PSFE_IEEE_Paper.pdf" target="_blank" rel="noopener">
-        ⬇ Download IEEE Research Paper (PDF • IEEEtran)
-      </a>
-    </div>
-    <p class="subtitle">
-      <strong>Author:</strong> Hamdan Ali (Roll No. 233120, Section F-23-BSSE-B, Air University, Islamabad) •
-      <strong>Novel Research Gap Solved:</strong> Elimination of Mixed-Type Serialization Leakage (<code>"0"</code> vs <code>"0.0"</code>) +
-      <strong>Privacy-Preserving Protocol-Header Structural Feature Engineering (PP-PSFE)</strong> across 62 features.
-    </p>
-  </header>
 
-  @if (deployedStatic) {
-    <aside class="notice">
-      <strong>Static GitHub Pages Mode:</strong> GitHub Pages hosts only the compiled Angular 22 browser bundle (Flask runs locally on <code>http://127.0.0.1:5050</code>).
-      Interactive preset replay is active below so you can inspect the trained XGBoost model's real outputs here on GitHub Pages.
-    </aside>
-  }
-
-  <section class="card research-card">
-    <h2>1. Four-Model Research Benchmark Comparison (Held-Out Test Split: 30,478 Flows)</h2>
-    <div class="table-wrap">
-      <table class="benchmark-table">
-        <thead>
-          <tr>
-            <th>Machine Learning Model</th>
-            <th>Test Accuracy</th>
-            <th>Macro F1-Score</th>
-            <th>ROC-AUC (Wt)</th>
-            <th>PR-AUC (Macro)</th>
-            <th>Overfitting Gap</th>
-            <th>Inference Latency</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (m of benchmarks; track m.name) {
-            <tr [class.best-row]="m.best">
-              <td>
-                <strong>{{m.name}}</strong>
-                @if (m.best) { <span class="winner-pill">SELECTED BEST</span> }
-              </td>
-              <td><strong>{{m.accuracy}}</strong></td>
-              <td>{{m.macroF1}}</td>
-              <td>{{m.rocAuc}}</td>
-              <td>{{m.prAuc}}</td>
-              <td>{{m.overfitGap}}</td>
-              <td>{{m.latency}}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section class="card control-card">
-    <h2>2. Interactive Real-Time Packet Classification (Click Any Traffic Scenario)</h2>
-    <p class="helper-text">
-      Select a held-out IIoT network packet preset below to populate all 62 features and run instant inference through the trained <strong>XGBoost Pipeline</strong>:
-    </p>
-    <div class="preset-bar">
-      @for (pName of presetNames; track pName) {
-        <button type="button"
-          class="preset-btn"
-          [class.active-preset]="activePreset === pName"
-          [class.preset-normal]="pName === 'Normal'"
-          [class.preset-attack]="pName !== 'Normal'"
-          (click)="loadPreset(pName, true)">
-          @if (pName === 'Normal') {
-            ✓ Load Normal Telemetry (Safe)
-          } @else {
-            ⚠ Load {{pName}} Attack
+      <nav class="nav-tabs" role="tablist" aria-label="Workspace Views">
+        <button
+          type="button"
+          role="tab"
+          class="nav-tab"
+          [class.is-active]="activeTab === 'classifier'"
+          [attr.aria-selected]="activeTab === 'classifier'"
+          (click)="activeTab = 'classifier'">
+          Classifier
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="nav-tab"
+          [class.is-active]="activeTab === 'benchmarks'"
+          [attr.aria-selected]="activeTab === 'benchmarks'"
+          (click)="activeTab = 'benchmarks'">
+          Model Benchmarks
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="nav-tab"
+          [class.is-active]="activeTab === 'history'"
+          [attr.aria-selected]="activeTab === 'history'"
+          (click)="activeTab = 'history'">
+          Session Log
+          @if (history.length) {
+            <span class="tab-count">{{ history.length }}</span>
           }
         </button>
-      }
-      <button type="button" class="secondary-btn clear-btn" (click)="clearForm()">
-        Clear All 62 Fields
-      </button>
-    </div>
+      </nav>
 
-    @if (error) {
-      <p class="error" role="alert">{{error}}</p>
+      <div class="topbar-utils">
+        <button
+          type="button"
+          class="status-pill"
+          [class.is-online]="apiState === 'online'"
+          [class.is-offline]="apiState === 'offline'"
+          [class.is-static]="apiState === 'static'"
+          (click)="checkHealth()"
+          title="Check Flask API health on 127.0.0.1:5050">
+          <span class="status-dot" aria-hidden="true"></span>
+          @if (apiState === 'online') {
+            <span class="mono">API 5050 · {{ apiLatencyMs }} ms</span>
+          } @else if (apiState === 'offline') {
+            <span>API Offline · Retry</span>
+          } @else if (apiState === 'static') {
+            <span>Static Replay</span>
+          } @else {
+            <span>Checking API…</span>
+          }
+        </button>
+
+        <button
+          type="button"
+          class="icon-btn"
+          (click)="toggleTheme()"
+          [attr.aria-label]="theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'">
+          @if (theme === 'dark') {
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+            </svg>
+            <span>Light</span>
+          } @else {
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+            <span>Dark</span>
+          }
+        </button>
+
+        <a
+          class="icon-btn"
+          href="Hamdan_Ali_PP-PSFE_IEEE_Paper.pdf"
+          download="Hamdan_Ali_PP-PSFE_IEEE_Paper.pdf"
+          target="_blank"
+          rel="noopener">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <polyline points="9 15 12 18 15 15"/>
+          </svg>
+          <span>Paper PDF</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    @if (deployedStatic) {
+      <div class="banner-notice" role="status">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <span>
+          Hosted in static GitHub Pages mode. Live Flask inference runs locally on <code class="mono">127.0.0.1:5050</code>; preset captures replay saved model outputs.
+        </span>
+      </div>
     }
 
-    @if (result) {
-      <section class="result-panel" [class.result-safe]="isNormalPrediction" [class.result-attack]="!isNormalPrediction">
-        <div class="result-header">
-          <div>
-            <span class="verdict-badge" [class.badge-safe]="isNormalPrediction" [class.badge-attack]="!isNormalPrediction">
-              {{isNormalPrediction ? '✓ SAFE / NORMAL IIoT TRAFFIC' : '🚨 CYBERATTACK DETECTED (INTRUSION ALERT)'}}
-            </span>
-            <h3 class="predicted-title">
-              Predicted Class: <span>{{result.prediction}}</span>
-              <small>(Class Index #{{result.predicted_class_index}})</small>
-            </h3>
-          </div>
-          <div class="confidence-box">
-            <span class="conf-label">Model Confidence</span>
-            <strong class="conf-value">{{confidencePercent}}</strong>
-          </div>
-        </div>
-
-        <div class="analysis-grid">
-          <div class="analysis-item">
-            <strong>Threat Category:</strong>
-            <p>{{currentClassInfo.category}}</p>
-          </div>
-          <div class="analysis-item">
-            <strong>Protocol &amp; PP-PSFE Signature Analysis:</strong>
-            <p>{{currentClassInfo.explanation}}</p>
-          </div>
-          <div class="analysis-item">
-            <strong>Recommended Security Action:</strong>
-            <p>{{currentClassInfo.action}}</p>
-          </div>
-        </div>
-
-        @if (topProbabilities.length) {
-          <div class="prob-section">
-            <h4>Top-5 Class Probability Distribution (Across 15 Edge-IIoTset Classes)</h4>
-            @for (bar of topProbabilities; track bar.name) {
-              <div class="prob-row">
-                <span class="prob-name">{{bar.name}}</span>
-                <div class="prob-track">
-                  <div class="prob-fill"
-                    [class.fill-safe]="bar.name === 'Normal'"
-                    [class.fill-attack]="bar.name !== 'Normal'"
-                    [style.width.%]="bar.prob * 100"></div>
-                </div>
-                <span class="prob-pct">{{bar.percent}}</span>
-              </div>
+    <!-- ================================================================
+         TAB 1: PACKET CLASSIFIER WORKBENCH
+         ================================================================ -->
+    @if (activeTab === 'classifier') {
+      <section class="capture-strip" aria-label="Held-out packet presets">
+        <div class="capture-left">
+          <span class="strip-label">Packet Presets</span>
+          <div class="preset-group">
+            @for (pName of presetNames; track pName) {
+              <button
+                type="button"
+                class="preset-chip"
+                [class.is-normal]="pName === 'Normal'"
+                [class.is-attack]="pName !== 'Normal'"
+                [class.is-selected]="activePreset === pName"
+                (click)="loadPreset(pName)">
+                <span class="chip-dot" aria-hidden="true"></span>
+                <span>{{ presetLabel(pName) }}</span>
+                <span class="chip-proto">{{ presetProto(pName) }}</span>
+              </button>
             }
           </div>
-        }
-        <p class="disclaimer">{{result.disclaimer}}</p>
+        </div>
+
+        <div class="capture-actions">
+          <label class="toggle-inline">
+            <input type="checkbox" [(ngModel)]="autoClassify" />
+            <span>Auto-classify</span>
+          </label>
+
+          @if (modifiedCount > 0) {
+            <button type="button" class="btn-ghost is-warn" (click)="resetToPreset()">
+              Reset ({{ modifiedCount }} edited)
+            </button>
+          }
+
+          <button type="button" class="btn-ghost" (click)="openJsonModal()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <polyline points="16 18 22 12 16 6"/>
+              <polyline points="8 6 2 12 8 18"/>
+            </svg>
+            JSON
+          </button>
+
+          <button type="button" class="btn-ghost" (click)="clearForm()">
+            Clear
+          </button>
+        </div>
+      </section>
+
+      <div class="split-grid">
+        <!-- Left Sticky Telemetry & Verdict Rail -->
+        <aside class="telemetry-rail" aria-label="Classification Verdict and Packet Telemetry">
+          @if (error) {
+            <div class="error-banner" role="alert">{{ error }}</div>
+          }
+
+          <section
+            class="panel verdict-panel"
+            [class.is-safe]="result && isNormalPrediction"
+            [class.is-threat]="result && !isNormalPrediction"
+            aria-live="polite">
+            <div class="panel-head">
+              <h2 class="panel-title">Classifier Verdict</h2>
+              @if (lastLatencyMs !== null && result) {
+                <span class="mono" style="font-size: 0.72rem; color: var(--text-muted);">
+                  {{ deployedStatic ? 'Replay' : lastLatencyMs + ' ms' }}
+                </span>
+              }
+            </div>
+
+            @if (isStaleResult) {
+              <div class="stale-alert">
+                <span>{{ modifiedCount || 'Flow' }} input(s) modified since last run.</span>
+                <button type="button" (click)="submit()" [disabled]="loading">Re-classify</button>
+              </div>
+            }
+
+            @if (loading && !result) {
+              <p class="helper-muted" style="color: var(--text-secondary); margin: 0.5rem 0;">
+                Running 62-feature XGBoost inference…
+              </p>
+            }
+
+            @if (result) {
+              <div class="verdict-hero">
+                <div>
+                  <span
+                    class="verdict-kicker"
+                    [class.is-safe]="isNormalPrediction"
+                    [class.is-threat]="!isNormalPrediction">
+                    @if (isNormalPrediction) {
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      Benign Flow
+                    } @else {
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                      </svg>
+                      Intrusion Detected
+                    }
+                  </span>
+                  <h3 class="verdict-class">{{ result.prediction }}</h3>
+                  <div class="verdict-meta">
+                    <span>Class #{{ result.predicted_class_index }}</span>
+                    <span>·</span>
+                    <span>{{ currentClassInfo.category }}</span>
+                  </div>
+                </div>
+
+                <div class="confidence-card">
+                  <span class="confidence-label">Confidence</span>
+                  <span class="confidence-val">{{ confidencePercent }}</span>
+                </div>
+              </div>
+
+              <div class="intel-list">
+                <div class="intel-item">
+                  <span class="intel-key">Observed Signature</span>
+                  <p class="intel-val">{{ currentClassInfo.explanation }}</p>
+                </div>
+                <div class="intel-item">
+                  <span class="intel-key">Policy Response</span>
+                  <p class="intel-val">{{ currentClassInfo.action }}</p>
+                </div>
+              </div>
+
+              @if (allProbabilities.length) {
+                <div class="prob-block">
+                  <div class="prob-head">
+                    <span class="panel-title">
+                      Class Probabilities ({{ showAllClasses ? 'All 15' : 'Top 5' }})
+                    </span>
+                    <button
+                      type="button"
+                      class="btn-ghost"
+                      style="padding: 0.22rem 0.55rem; font-size: 0.72rem;"
+                      (click)="showAllClasses = !showAllClasses">
+                      {{ showAllClasses ? 'Show Top 5' : 'All 15 Classes' }}
+                    </button>
+                  </div>
+
+                  <div class="prob-list">
+                    @for (bar of visibleProbabilities; track bar.name; let idx = $index) {
+                      <div class="prob-item" [class.is-top]="idx === 0">
+                        <span class="prob-label" [title]="bar.name">{{ bar.name }}</span>
+                        <div class="prob-track">
+                          <div
+                            class="prob-fill"
+                            [class.is-safe]="bar.name === 'Normal'"
+                            [class.is-threat]="bar.name !== 'Normal'"
+                            [style.width.%]="bar.prob * 100">
+                          </div>
+                        </div>
+                        <span class="prob-num">{{ bar.percent }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <p class="disclaimer-line">{{ result.disclaimer }}</p>
+            } @else if (!loading) {
+              <p style="margin: 0.25rem 0 0; color: var(--text-secondary); font-size: 0.84rem;">
+                Select a held-out preset above or populate all 62 features and click <strong>Classify Packet</strong>.
+              </p>
+            }
+          </section>
+
+          <!-- Live Packet Anatomy Telemetry -->
+          <section class="panel" aria-label="Live Packet Anatomy">
+            <div class="panel-head">
+              <h2 class="panel-title">Live Flow Anatomy</h2>
+              <span class="mono" style="font-size: 0.72rem; color: var(--text-muted);">
+                Δport {{ anatomy.portSpan }}
+              </span>
+            </div>
+
+            <div class="socket-diagram">
+              <div class="socket-node">
+                <span class="socket-role">Ephemeral</span>
+                <span class="socket-port">:{{ anatomy.ephemeralPort }}</span>
+              </div>
+              <div class="socket-arrow">
+                <span>{{ anatomy.directionLabel }}</span>
+                <span class="socket-line"></span>
+              </div>
+              <div class="socket-node is-right">
+                <span class="socket-role">Service</span>
+                <span class="socket-port">:{{ anatomy.servicePort }}</span>
+              </div>
+            </div>
+
+            <div class="anatomy-group">
+              <div class="anatomy-label">
+                <span>Protocol Stack</span>
+                <span class="mono">{{ anatomy.payloadBytes }} B payload</span>
+              </div>
+              <div class="tag-row">
+                @for (p of anatomy.activeProtocols; track p.name) {
+                  <span class="proto-tag" [class.is-on]="p.active">{{ p.name }}</span>
+                }
+              </div>
+            </div>
+
+            <div class="anatomy-group">
+              <div class="anatomy-label">
+                <span>TCP Control Flags</span>
+              </div>
+              <div class="tag-row">
+                @for (f of anatomy.tcpFlags; track f.name) {
+                  <span
+                    class="proto-tag"
+                    [class.is-on]="f.active && f.name !== 'RST'"
+                    [class.is-alert]="f.active && f.name === 'RST'">
+                    {{ f.name }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <div class="anatomy-group">
+              <div class="anatomy-label">
+                <span>Payload Shannon Entropy</span>
+                <span class="mono">{{ anatomy.entropy.toFixed(2) }} / 8.00 bits/B · {{ anatomy.entropyZone }}</span>
+              </div>
+              <div class="entropy-bar">
+                <div class="entropy-fill" [style.width.%]="anatomy.entropyPct"></div>
+              </div>
+            </div>
+
+            <div class="anatomy-group">
+              <div class="anatomy-label">
+                <span>Active PP-PSFE Heuristics</span>
+              </div>
+              <div class="tag-row">
+                @if (anatomy.signals.length) {
+                  @for (sig of anatomy.signals; track sig.label) {
+                    <span
+                      class="proto-tag"
+                      [class.is-on]="sig.severity === 'info'"
+                      [class.is-alert]="sig.severity === 'alert'">
+                      {{ sig.label }}
+                    </span>
+                  }
+                } @else {
+                  <span class="proto-tag">No heuristic flags active</span>
+                }
+              </div>
+            </div>
+          </section>
+        </aside>
+
+        <!-- Right 62-Feature Flow Workbench -->
+        <form class="panel inspector-panel" (ngSubmit)="submit()">
+          <div class="inspector-toolbar">
+            <div class="toolbar-top">
+              <div class="toolbar-heading">
+                <h2>Flow Feature Vector ({{ fields.length }} Inputs)</h2>
+                <p>38 sanitized protocol fields and 24 privacy-preserving structural features.</p>
+              </div>
+              <button type="submit" class="btn-primary" [disabled]="loading">
+                @if (loading) {
+                  <span class="spinner" aria-hidden="true"></span>
+                  <span>Classifying…</span>
+                } @else {
+                  <span>Classify Packet</span>
+                  <span class="kbd-hint">Ctrl+Enter</span>
+                }
+              </button>
+            </div>
+
+            <div class="layer-tabs" role="group" aria-label="Filter features by protocol layer">
+              @for (grp of featureGroups; track grp.id) {
+                <button
+                  type="button"
+                  class="layer-tab"
+                  [class.is-active]="selectedGroup === grp.id"
+                  (click)="selectedGroup = grp.id">
+                  <span>{{ grp.label }}</span>
+                  <span class="mono" style="opacity: 0.78;">{{ groupCount(grp.id) }}</span>
+                </button>
+              }
+            </div>
+
+            <div class="search-row">
+              <div class="search-box">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  #searchInput
+                  type="search"
+                  class="search-input"
+                  name="featureSearch"
+                  placeholder="Filter by feature key, label, or protocol…"
+                  [(ngModel)]="searchQuery" />
+                <span class="search-kbd" aria-hidden="true">/</span>
+              </div>
+
+              <button
+                type="button"
+                class="filter-pill"
+                [class.is-active]="onlyNonZero"
+                (click)="onlyNonZero = !onlyNonZero">
+                Non-zero only
+              </button>
+
+              <button
+                type="button"
+                class="filter-pill"
+                [class.is-active]="onlyModified"
+                (click)="onlyModified = !onlyModified">
+                Edited ({{ modifiedCount }})
+              </button>
+            </div>
+          </div>
+
+          @if (filteredFields.length) {
+            <div class="feature-grid">
+              @for (field of filteredFields; track field.name) {
+                <div class="field-card" [class.is-modified]="isFieldModified(field.name)" [title]="fieldMeta(field.name).hint">
+                  <div class="field-top">
+                    <div class="field-name-wrap">
+                      <span class="field-human">
+                        @if (isFieldModified(field.name)) {
+                          <span class="mod-dot" title="Modified from preset"></span>
+                        }
+                        <span>{{ fieldMeta(field.name).displayLabel }}</span>
+                      </span>
+                      <code class="field-raw">{{ field.name }}</code>
+                    </div>
+                    @if (fieldMeta(field.name).unit) {
+                      <span class="unit-tag">{{ fieldMeta(field.name).unit }}</span>
+                    } @else if (fieldMeta(field.name).isBinary) {
+                      <span class="unit-tag">0/1</span>
+                    }
+                  </div>
+
+                  @if (field.kind === 'category') {
+                    <select
+                      class="field-control"
+                      [name]="field.name"
+                      [(ngModel)]="values[field.name]"
+                      [required]="field.required">
+                      <option [ngValue]="null">Select value…</option>
+                      @for (option of field.options ?? []; track option) {
+                        <option [ngValue]="option">{{ option }}</option>
+                      }
+                    </select>
+                  } @else if (fieldMeta(field.name).isBinary) {
+                    <div class="segmented-binary" role="group" [attr.aria-label]="fieldMeta(field.name).displayLabel">
+                      <button
+                        type="button"
+                        class="seg-btn"
+                        [class.is-active]="values[field.name] === 0"
+                        (click)="setBinaryValue(field.name, 0)">
+                        0 · Off
+                      </button>
+                      <button
+                        type="button"
+                        class="seg-btn is-one"
+                        [class.is-active]="values[field.name] === 1"
+                        (click)="setBinaryValue(field.name, 1)">
+                        1 · On
+                      </button>
+                    </div>
+                  } @else {
+                    <input
+                      type="number"
+                      step="any"
+                      class="field-control"
+                      [name]="field.name"
+                      [min]="field.min ?? null"
+                      [max]="field.max ?? null"
+                      [(ngModel)]="values[field.name]"
+                      [required]="field.required" />
+                  }
+
+                  <p class="field-hint">{{ fieldMeta(field.name).hint }}</p>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-state">
+              <p style="margin: 0 0 0.75rem;">No features match the active filters.</p>
+              <button type="button" class="btn-ghost" (click)="resetFilters()">Reset filters</button>
+            </div>
+          }
+        </form>
+      </div>
+    }
+
+    <!-- ================================================================
+         TAB 2: MODEL BENCHMARKS
+         ================================================================ -->
+    @if (activeTab === 'benchmarks') {
+      <section class="kpi-strip" aria-label="Evaluation Summary Metrics">
+        <div class="kpi-card">
+          <span class="kpi-label">Selected Classifier</span>
+          <span class="kpi-value">XGBoost</span>
+          <span class="kpi-sub">PP-PSFE + StandardScaler</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Test Accuracy</span>
+          <span class="kpi-value">96.49%</span>
+          <span class="kpi-sub">30,478 held-out flows</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Macro F1-Score</span>
+          <span class="kpi-value">0.9618</span>
+          <span class="kpi-sub">15 attack &amp; benign classes</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Inference Latency</span>
+          <span class="kpi-value">3.54 ms</span>
+          <span class="kpi-sub">per 1,000 packet flows</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Overfitting Gap</span>
+          <span class="kpi-value">+0.0057</span>
+          <span class="kpi-sub">Train vs test accuracy delta</span>
+        </div>
+      </section>
+
+      <section class="panel" style="margin-bottom: 1rem;">
+        <div class="panel-head" style="flex-wrap: wrap;">
+          <div>
+            <h2 style="margin: 0; font-size: 1rem;">Interactive Cross-Model Comparison</h2>
+            <p style="margin: 0.15rem 0 0; font-size: 0.78rem; color: var(--text-secondary);">
+              {{ activeMetricDirection }} across the leakage-sanitized Edge-IIoTset test split.
+            </p>
+          </div>
+          <div class="layer-tabs">
+            @for (metric of benchmarkMetrics; track metric.key) {
+              <button
+                type="button"
+                class="layer-tab"
+                [class.is-active]="selectedMetric === metric.key"
+                (click)="selectedMetric = metric.key">
+                {{ metric.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="metric-chart-list">
+          @for (m of benchmarks; track m.name) {
+            <div class="metric-chart-row">
+              <div>
+                <strong style="font-size: 0.85rem;">{{ m.shortName }}</strong>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">{{ m.family }}</div>
+              </div>
+              <div class="prob-track" style="height: 10px;">
+                <div
+                  class="prob-fill"
+                  [class.is-safe]="isMetricWinner(m)"
+                  [style.width.%]="metricBarPercent(m)">
+                </div>
+              </div>
+              <div class="mono num" style="text-align: right; font-weight: 700;">
+                {{ metricDisplay(m) }}
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Complete Quantitative Matrix (n = 30,478 Test Flows)</h2>
+        </div>
+
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Test Accuracy</th>
+                <th>Macro F1</th>
+                <th>ROC-AUC (Wt)</th>
+                <th>PR-AUC (Macro)</th>
+                <th>Overfit Gap</th>
+                <th>Train Time</th>
+                <th>Latency / 1k</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (m of benchmarks; track m.name) {
+                <tr [class.is-best]="m.best">
+                  <td>
+                    <strong>{{ m.name }}</strong>
+                    @if (m.best) {
+                      <span class="badge-selected">DEPLOYED</span>
+                    }
+                  </td>
+                  <td class="mono num"><strong>{{ m.accuracy }}</strong></td>
+                  <td class="mono num">{{ m.macroF1 }}</td>
+                  <td class="mono num">{{ m.rocAuc }}</td>
+                  <td class="mono num">{{ m.prAuc }}</td>
+                  <td class="mono num">{{ m.overfitGap }}</td>
+                  <td class="mono num">{{ m.trainTime }}</td>
+                  <td class="mono num">{{ m.latency }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="provenance-footer">
+          <span>
+            <strong>Author:</strong> Hamdan Ali (Roll No. 233120, Section F-23-BSSE-B, Air University, Islamabad)
+          </span>
+          <span>
+            <strong>Pipeline:</strong> ColumnTransformer (6 categorical OrdinalEncoders + 56 numeric) → StandardScaler → XGBClassifier · Edge-IIoTset (IEEE Access, 2022)
+          </span>
+        </div>
       </section>
     }
-  </section>
 
-  <form class="card" (ngSubmit)="submit()">
-    <div class="form-header">
-      <div>
-        <h2>3. Packet Input Features ({{fields.length}} Features: 38 Protocol + 24 PP-PSFE)</h2>
-        <p class="helper-text">Modify any feature value below and click <strong>Run Prediction</strong> to test custom network flow parameters.</p>
-      </div>
-      <button type="submit" class="primary-btn" [disabled]="loading">
-        {{loading ? 'Predicting…' : 'Run Prediction Now'}}
-      </button>
-    </div>
-
-    <div class="grid">
-      @for (field of fields; track field.name) {
-        <label class="field-label">
-          <span class="field-title">{{field.label}}</span>
-          @if (field.kind === 'number') {
-            <input type="number" step="any" [name]="field.name"
-              [min]="field.min ?? null" [max]="field.max ?? null"
-              [(ngModel)]="values[field.name]" [required]="field.required" />
-          } @else {
-            <select [name]="field.name" [(ngModel)]="values[field.name]"
-              [required]="field.required">
-              <option [ngValue]="null">Select a value</option>
-              @for (option of field.options ?? []; track option) {
-                <option [ngValue]="option">{{option}}</option>
-              }
-            </select>
+    <!-- ================================================================
+         TAB 3: SESSION CLASSIFICATION LOG
+         ================================================================ -->
+    @if (activeTab === 'history') {
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 style="margin: 0; font-size: 1rem;">Session Classification Log</h2>
+            <p style="margin: 0.15rem 0 0; font-size: 0.78rem; color: var(--text-secondary);">
+              Inspect or reload any packet flow evaluated in this browser session.
+            </p>
+          </div>
+          @if (history.length) {
+            <button type="button" class="btn-ghost" (click)="clearHistory()">Clear Log</button>
           }
-        </label>
-      }
-    </div>
+        </div>
 
-    <div class="form-footer">
-      <button type="submit" class="primary-btn" [disabled]="loading">
-        {{loading ? 'Predicting…' : 'Run Prediction Now'}}
-      </button>
+        @if (history.length) {
+          <div class="data-table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Time</th>
+                  <th>Source Flow</th>
+                  <th>Verdict</th>
+                  <th>Confidence</th>
+                  <th>Latency</th>
+                  <th>Mode</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (entry of history; track entry.id) {
+                  <tr>
+                    <td class="mono num">{{ entry.id }}</td>
+                    <td class="mono num">{{ entry.timestamp }}</td>
+                    <td>{{ entry.sourceLabel }}</td>
+                    <td>
+                      <span
+                        class="verdict-kicker"
+                        [class.is-safe]="entry.isNormal"
+                        [class.is-threat]="!entry.isNormal">
+                        {{ entry.prediction }}
+                      </span>
+                    </td>
+                    <td class="mono num">{{ entry.confidence }}</td>
+                    <td class="mono num">{{ entry.latencyMs !== null ? entry.latencyMs + ' ms' : '—' }}</td>
+                    <td class="mono">{{ entry.mode }}</td>
+                    <td style="text-align: right;">
+                      <button type="button" class="btn-ghost" (click)="loadHistoryEntry(entry)">
+                        Load in Classifier
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="empty-state">
+            <p style="margin: 0;">No packets classified yet in this session.</p>
+          </div>
+        }
+      </section>
+    }
+  </main>
+
+  <!-- Raw 62-Feature JSON Modal -->
+  @if (jsonModalOpen) {
+    <div class="modal-backdrop" (click)="closeJsonModal()" role="dialog" aria-modal="true" aria-labelledby="json-modal-title">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-head">
+          <div>
+            <h2 id="json-modal-title" style="margin: 0; font-size: 0.95rem;">Raw 62-Feature JSON Payload</h2>
+            <span style="font-size: 0.74rem; color: var(--text-secondary);">
+              Inspect, copy, or paste a 62-key Edge-IIoTset JSON object for <code class="mono">POST /api/predict</code>.
+            </span>
+          </div>
+          <button type="button" class="btn-ghost" (click)="closeJsonModal()">Close</button>
+        </div>
+
+        <div class="modal-body">
+          @if (jsonError) {
+            <div class="error-banner">{{ jsonError }}</div>
+          }
+          <textarea class="json-editor" [(ngModel)]="jsonDraft" spellcheck="false" aria-label="62-feature JSON payload"></textarea>
+        </div>
+
+        <div class="modal-foot">
+          <button type="button" class="btn-ghost" (click)="copyJson()">
+            {{ jsonCopied ? 'Copied to Clipboard' : 'Copy JSON' }}
+          </button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="button" class="btn-ghost" (click)="applyJsonPayload(false)">Apply to Form</button>
+            <button type="button" class="btn-primary" (click)="applyJsonPayload(true)">Apply &amp; Classify</button>
+          </div>
+        </div>
+      </div>
     </div>
-  </form>
-</main>
+  }
+</div>

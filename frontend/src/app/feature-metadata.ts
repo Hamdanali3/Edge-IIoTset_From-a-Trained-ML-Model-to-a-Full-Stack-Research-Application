@@ -327,8 +327,8 @@ export const FEATURE_METADATA: Record<string, FeatureMeta> = {
   'psfe_tcp_pay_entropy': {
     group: 'psfe',
     displayLabel: 'Payload Shannon Entropy',
-    unit: 'bits/B',
-    hint: 'Byte-level Shannon entropy (0.0 = empty/uniform, up to 8.0 = encrypted/random).'
+    unit: '0–4 bits',
+    hint: 'Hex-nybble Shannon entropy over first 64 chars (0 = empty, up to 4.0 = dense/encrypted).'
   },
   'psfe_http_uri_path_len': {
     group: 'psfe',

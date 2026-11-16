@@ -1,12 +1,4 @@
-import {
-  ChangeDetectorRef,
-  Component,
-  ElementRef,
-  HostListener,
-  OnInit,
-  ViewChild,
-  inject,
-} from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FEATURES, Feature, SAMPLE_PRESETS } from './feature-schema';
@@ -26,44 +18,25 @@ export interface ClassProbBar {
 
 export interface ModelBenchmark {
   name: string;
-  shortName: string;
-  family: string;
+  role: string;
   accuracyNum: number;
   accuracy: string;
   macroF1Num: number;
   macroF1: string;
-  rocAucNum: number;
-  rocAuc: string;
-  prAucNum: number;
-  prAuc: string;
-  overfitGapNum: number;
-  overfitGap: string;
   latencyNum: number;
   latency: string;
-  trainTime: string;
+  gap: string;
   best?: boolean;
 }
 
-export type BenchmarkMetricKey =
-  | 'accuracy'
-  | 'macroF1'
-  | 'rocAuc'
-  | 'prAuc'
-  | 'overfitGap'
-  | 'latency';
-
-export interface ClassificationLogEntry {
-  id: number;
-  timestamp: string;
-  sourceLabel: string;
-  modifiedCount: number;
-  prediction: string;
-  isNormal: boolean;
-  confidence: string;
-  latencyMs: number | null;
-  mode: 'Live API' | 'Static Replay';
-  snapshot: Record<string, string | number>;
-  response: PredictionResponse;
+export interface AblationRow {
+  label: string;
+  features: number;
+  accuracyNum: number;
+  accuracy: string;
+  macroF1: string;
+  note: string;
+  status?: 'best' | 'drop';
 }
 
 const STATIC_PRESET_RESULTS: Record<string, PredictionResponse> = {
@@ -77,7 +50,7 @@ const STATIC_PRESET_RESULTS: Record<string, PredictionResponse> = {
       Backdoor: 0.000001, DDoS_TCP: 0.000001, Password: 0.000001, Ransomware: 0.000001, Uploading: 0.000001, XSS: 0.000001,
       DDoS_ICMP: 0, DDoS_UDP: 0, Fingerprinting: 0, MITM: 0, Port_Scanning: 0, SQL_injection: 0
     },
-    disclaimer: 'Research prototype evaluated on Edge-IIoTset (Static Replay Mode).'
+    disclaimer: 'Research prototype on Edge-IIoTset (Static Replay Mode).'
   },
   DDoS_TCP: {
     prediction: 'DDoS_TCP',
@@ -89,7 +62,7 @@ const STATIC_PRESET_RESULTS: Record<string, PredictionResponse> = {
       Normal: 0.000001, Uploading: 0.000001, Vulnerability_scanner: 0.000001,
       Backdoor: 0, DDoS_ICMP: 0, DDoS_UDP: 0, Fingerprinting: 0, MITM: 0, Port_Scanning: 0, Ransomware: 0
     },
-    disclaimer: 'Research prototype evaluated on Edge-IIoTset (Static Replay Mode).'
+    disclaimer: 'Research prototype on Edge-IIoTset (Static Replay Mode).'
   },
   SQL_injection: {
     prediction: 'SQL_injection',
@@ -101,7 +74,7 @@ const STATIC_PRESET_RESULTS: Record<string, PredictionResponse> = {
       Vulnerability_scanner: 0.000028, Normal: 0.00001, DDoS_UDP: 0.000007, Backdoor: 0.000006, DDoS_ICMP: 0.000006,
       DDoS_TCP: 0.000006, Ransomware: 0.000006, Port_Scanning: 0.000005, MITM: 0.000003, Fingerprinting: 0.000002
     },
-    disclaimer: 'Research prototype evaluated on Edge-IIoTset (Static Replay Mode).'
+    disclaimer: 'Research prototype on Edge-IIoTset (Static Replay Mode).'
   },
   Ransomware: {
     prediction: 'Ransomware',
@@ -113,38 +86,50 @@ const STATIC_PRESET_RESULTS: Record<string, PredictionResponse> = {
       Normal: 0.000003, SQL_injection: 0.000003, XSS: 0.000003, Password: 0.000001,
       DDoS_ICMP: 0, DDoS_TCP: 0, DDoS_UDP: 0, Fingerprinting: 0, MITM: 0, Port_Scanning: 0
     },
-    disclaimer: 'Research prototype evaluated on Edge-IIoTset (Static Replay Mode).'
+    disclaimer: 'Research prototype on Edge-IIoTset (Static Replay Mode).'
   }
 };
 
-const PRESET_PROTOS: Record<string, { label: string; proto: string }> = {
-  Normal: { label: 'Normal Telemetry', proto: 'MQTT :1883' },
-  DDoS_TCP: { label: 'DDoS TCP Flood', proto: 'TCP :80' },
-  SQL_injection: { label: 'SQL Injection', proto: 'HTTP :80' },
-  Ransomware: { label: 'Ransomware C2', proto: 'C2 :4321' },
-};
-
-const CLASS_DESCRIPTIONS: Record<string, { category: string; explanation: string; action: string }> = {
+const PRESET_CARDS: Record<string, { title: string; subtitle: string; tag: string }> = {
   Normal: {
-    category: 'Benign IIoT Telemetry',
-    explanation: 'MQTT/TCP telemetry on port 1883 with clean state transitions and no injection or C2 indicators.',
-    action: 'Permit flow; no policy intervention needed.'
+    title: 'Normal Sensor Telemetry',
+    subtitle: 'Routine MQTT broker disconnect flow',
+    tag: 'MQTT :1883',
   },
   DDoS_TCP: {
-    category: 'Volumetric Transport Flood',
-    explanation: 'High-rate TCP control traffic targeting port 80 with RST/ACK anomalies, empty payload, and wide ephemeral port spread.',
-    action: 'Rate-limit source subnet at edge gateway and enforce SYN cookies.'
+    title: 'DDoS TCP Flood',
+    subtitle: 'Empty-payload RST/ACK volumetric burst',
+    tag: 'TCP :80',
   },
   SQL_injection: {
-    category: 'Application-Layer Injection',
-    explanation: 'HTTP request carrying SQL syntax patterns (psfe_app_sqli_flag=1) with elevated URI query length and payload entropy.',
-    action: 'Block HTTP request at WAF layer and revoke active session token.'
+    title: 'SQL Injection Probe',
+    subtitle: 'HTTP GET query with SQL syntax markers',
+    tag: 'HTTP :80',
   },
   Ransomware: {
-    category: 'Malware Command & Control',
-    explanation: 'Encrypted TCP payload on non-standard service port (4321) with elevated Shannon entropy and TCP timestamp options.',
-    action: 'Isolate source IIoT endpoint and block outbound C2 destination.'
-  }
+    title: 'Ransomware C2 Traffic',
+    subtitle: 'High-entropy encrypted payload on C2 port',
+    tag: 'Port :4321',
+  },
+};
+
+const CLASS_EXPLANATIONS: Record<string, { summary: string; action: string }> = {
+  Normal: {
+    summary: 'Standard MQTT sensor traffic on port 1883 with normal TCP flags and no malicious signatures.',
+    action: 'Allow flow normally.',
+  },
+  DDoS_TCP: {
+    summary: 'Volumetric TCP control traffic targeting port 80 with RST flags and zero application payload.',
+    action: 'Rate-limit source subnet and enable SYN cookies.',
+  },
+  SQL_injection: {
+    summary: 'HTTP request carrying SQL injection query patterns (psfe_app_sqli_flag=1) and elevated URI length.',
+    action: 'Block HTTP request at the WAF and audit endpoint queries.',
+  },
+  Ransomware: {
+    summary: 'Encrypted outbound command-and-control traffic on port 4321 with high payload entropy.',
+    action: 'Quarantine the IIoT host and block the destination port.',
+  },
 };
 
 @Component({
@@ -155,11 +140,8 @@ const CLASS_DESCRIPTIONS: Record<string, { category: string; explanation: string
   styleUrl: './app.css',
 })
 export class App implements OnInit {
-  @ViewChild('searchInput') searchInputRef?: ElementRef<HTMLInputElement>;
-
   readonly fields = FEATURES;
   readonly featureGroups = FEATURE_GROUPS;
-  readonly metaByName = FEATURE_METADATA;
   readonly presets = SAMPLE_PRESETS;
   readonly presetNames = Object.keys(SAMPLE_PRESETS);
   readonly deployedStatic =
@@ -169,107 +151,136 @@ export class App implements OnInit {
   readonly benchmarks: ModelBenchmark[] = [
     {
       name: 'XGBoost + PP-PSFE',
-      shortName: 'XGBoost + PP-PSFE',
-      family: 'Gradient Boosted Trees (Selected)',
+      role: 'Selected model · lowest error + 5x faster than LightGBM',
       accuracyNum: 96.49,
       accuracy: '96.49%',
       macroF1Num: 0.9618,
       macroF1: '0.9618',
-      rocAucNum: 0.9991,
-      rocAuc: '0.9991',
-      prAucNum: 0.9874,
-      prAuc: '0.9874',
-      overfitGapNum: 0.0057,
-      overfitGap: '+0.0057',
       latencyNum: 3.54,
       latency: '3.54 ms',
-      trainTime: '13.93 s',
+      gap: '+0.0057',
       best: true,
     },
     {
       name: 'LightGBM',
-      shortName: 'LightGBM',
-      family: 'Leaf-Wise GBDT',
+      role: 'Leaf-wise gradient boosting',
       accuracyNum: 96.33,
       accuracy: '96.33%',
       macroF1Num: 0.9596,
       macroF1: '0.9596',
-      rocAucNum: 0.9991,
-      rocAuc: '0.9991',
-      prAucNum: 0.9888,
-      prAuc: '0.9888',
-      overfitGapNum: 0.0210,
-      overfitGap: '+0.0210',
       latencyNum: 18.35,
       latency: '18.35 ms',
-      trainTime: '7.61 s',
+      gap: '+0.0210',
     },
     {
       name: 'Random Forest',
-      shortName: 'Random Forest',
-      family: 'Bagging Ensemble',
+      role: 'Balanced bagging ensemble (150 trees)',
       accuracyNum: 94.38,
       accuracy: '94.38%',
       macroF1Num: 0.9414,
       macroF1: '0.9414',
-      rocAucNum: 0.9978,
-      rocAuc: '0.9978',
-      prAucNum: 0.9768,
-      prAuc: '0.9768',
-      overfitGapNum: 0.0020,
-      overfitGap: '+0.0020',
       latencyNum: 10.35,
       latency: '10.35 ms',
-      trainTime: '3.46 s',
+      gap: '+0.0020',
     },
     {
       name: 'Logistic Regression',
-      shortName: 'Logistic Regression',
-      family: 'Linear Baseline',
+      role: 'Linear baseline (struggles on HTTP attacks)',
       accuracyNum: 84.87,
       accuracy: '84.87%',
       macroF1Num: 0.8419,
       macroF1: '0.8419',
-      rocAucNum: 0.9829,
-      rocAuc: '0.9829',
-      prAucNum: 0.8656,
-      prAuc: '0.8656',
-      overfitGapNum: 0.0016,
-      overfitGap: '+0.0016',
       latencyNum: 0.43,
       latency: '0.43 ms',
-      trainTime: '23.18 s',
+      gap: '+0.0016',
     },
   ];
 
-  readonly benchmarkMetrics: {
-    key: BenchmarkMetricKey;
-    label: string;
-    direction: string;
-  }[] = [
-    { key: 'accuracy', label: 'Test Accuracy', direction: 'Higher is better' },
-    { key: 'macroF1', label: 'Macro F1', direction: 'Higher is better' },
-    { key: 'rocAuc', label: 'ROC-AUC', direction: 'Higher is better' },
-    { key: 'prAuc', label: 'PR-AUC', direction: 'Higher is better' },
-    { key: 'overfitGap', label: 'Overfit Gap', direction: 'Lower is better' },
-    { key: 'latency', label: 'Latency / 1k', direction: 'Lower is better' },
+  readonly randomAblation: AblationRow[] = [
+    {
+      label: 'Core + PP-PSFE (Proposed)',
+      features: 62,
+      accuracyNum: 96.57,
+      accuracy: '96.57%',
+      macroF1: '0.9621',
+      note: '+7.60% recovery over cleaned core features alone',
+      status: 'best',
+    },
+    {
+      label: 'PP-PSFE minus raw ports',
+      features: 59,
+      accuracyNum: 92.64,
+      accuracy: '92.64%',
+      macroF1: '0.9237',
+      note: 'Drops raw continuous port coordinates, keeps role flags',
+    },
+    {
+      label: 'PP-PSFE minus all port group',
+      features: 53,
+      accuracyNum: 90.95,
+      accuracy: '90.95%',
+      macroF1: '0.9023',
+      note: 'Removes all 9 Group A port-role features',
+    },
+    {
+      label: 'Sanitized Core Only',
+      features: 38,
+      accuracyNum: 88.97,
+      accuracy: '88.97%',
+      macroF1: '0.8900',
+      note: 'After deleting lab IPs, timestamps, URIs & payloads',
+    },
   ];
 
-  activeTab: 'classifier' | 'benchmarks' | 'history' = 'classifier';
-  theme: 'dark' | 'light' = 'dark';
+  readonly temporalAblation: AblationRow[] = [
+    {
+      label: 'PP-PSFE minus raw ports',
+      features: 59,
+      accuracyNum: 91.70,
+      accuracy: '91.70%',
+      macroF1: '0.9151',
+      note: 'Best temporal stability (+3.77% over core baseline)',
+      status: 'best',
+    },
+    {
+      label: 'Sanitized Core Only',
+      features: 38,
+      accuracyNum: 87.93,
+      accuracy: '87.93%',
+      macroF1: '0.8813',
+      note: 'Baseline without engineered features',
+    },
+    {
+      label: 'Core + Full PP-PSFE (with raw ports)',
+      features: 62,
+      accuracyNum: 79.40,
+      accuracy: '79.40%',
+      macroF1: '0.7638',
+      note: 'Exposes chronological ephemeral-port drift across sessions',
+      status: 'drop',
+    },
+    {
+      label: 'Minus sequence/stream counters',
+      features: 58,
+      accuracyNum: 66.39,
+      accuracy: '66.39%',
+      macroF1: '0.6037',
+      note: 'Exposes capture-order counter reliance (tcp.seq, udp.stream)',
+      status: 'drop',
+    },
+  ];
+
+  theme: 'light' | 'dark' = 'light';
   apiState: 'checking' | 'online' | 'offline' | 'static' = 'checking';
   apiLatencyMs: number | null = null;
 
   activePreset = 'Normal';
-  autoClassify = true;
   values: Record<string, string | number | null> = {};
   baselineValues: Record<string, string | number | null> = {};
-  lastClassifiedSignature = '';
 
-  selectedGroup: 'all' | FeatureGroup = 'all';
+  showEditor = false;
+  selectedGroup: 'all' | FeatureGroup = 'psfe';
   searchQuery = '';
-  onlyNonZero = false;
-  onlyModified = false;
 
   loading = false;
   error = '';
@@ -278,9 +289,8 @@ export class App implements OnInit {
   allProbabilities: ClassProbBar[] = [];
   showAllClasses = false;
 
-  selectedMetric: BenchmarkMetricKey = 'accuracy';
-  history: ClassificationLogEntry[] = [];
-  private nextLogId = 1;
+  benchmarkMetric: 'accuracy' | 'macroF1' | 'latency' = 'accuracy';
+  ablationSplit: 'random' | 'temporal' = 'random';
 
   jsonModalOpen = false;
   jsonDraft = '';
@@ -296,40 +306,13 @@ export class App implements OnInit {
     this.loadPreset('Normal', true);
   }
 
-  @HostListener('window:keydown', ['$event'])
-  handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape' && this.jsonModalOpen) {
-      this.closeJsonModal();
-      return;
-    }
-
-    const target = event.target as HTMLElement | null;
-    const isEditingText =
-      target?.tagName === 'INPUT' ||
-      target?.tagName === 'TEXTAREA' ||
-      target?.tagName === 'SELECT';
-
-    if (event.key === '/' && !isEditingText && this.activeTab === 'classifier') {
-      event.preventDefault();
-      this.searchInputRef?.nativeElement.focus();
-      return;
-    }
-
-    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && this.activeTab === 'classifier') {
-      event.preventDefault();
-      if (!this.loading) {
-        this.submit();
-      }
-    }
-  }
-
   private initTheme() {
     if (typeof window === 'undefined') return;
     try {
       const saved = window.localStorage?.getItem('edge-ids-theme');
-      this.theme = saved === 'light' ? 'light' : 'dark';
+      this.theme = saved === 'dark' ? 'dark' : 'light';
     } catch {
-      this.theme = 'dark';
+      this.theme = 'light';
     }
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('data-theme', this.theme);
@@ -337,7 +320,7 @@ export class App implements OnInit {
   }
 
   toggleTheme() {
-    this.theme = this.theme === 'dark' ? 'light' : 'dark';
+    this.theme = this.theme === 'light' ? 'dark' : 'light';
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('data-theme', this.theme);
     }
@@ -345,7 +328,7 @@ export class App implements OnInit {
       try {
         window.localStorage?.setItem('edge-ids-theme', this.theme);
       } catch {
-        // Ignore storage errors in restricted contexts.
+        // Ignore storage restrictions.
       }
     }
   }
@@ -373,12 +356,8 @@ export class App implements OnInit {
     });
   }
 
-  presetLabel(name: string): string {
-    return PRESET_PROTOS[name]?.label ?? name;
-  }
-
-  presetProto(name: string): string {
-    return PRESET_PROTOS[name]?.proto ?? 'FLOW';
+  presetCard(name: string) {
+    return PRESET_CARDS[name] ?? { title: name, subtitle: 'Held-out packet sample', tag: 'Flow' };
   }
 
   fieldMeta(name: string): FeatureMeta {
@@ -386,7 +365,7 @@ export class App implements OnInit {
       FEATURE_METADATA[name] ?? {
         group: 'psfe',
         displayLabel: name,
-        hint: 'Model input feature.',
+        hint: 'Input feature.',
       }
     );
   }
@@ -404,61 +383,28 @@ export class App implements OnInit {
   get modifiedCount(): number {
     if (!this.activePreset) return 0;
     let count = 0;
-    for (const field of this.fields) {
-      if (this.isFieldModified(field.name)) count++;
+    for (const f of this.fields) {
+      if (this.isFieldModified(f.name)) count++;
     }
     return count;
   }
 
-  get currentPayloadSignature(): string {
-    return this.fields.map(f => String(this.values[f.name] ?? '')).join('|');
-  }
-
-  get isStaleResult(): boolean {
-    return (
-      this.result !== null &&
-      this.lastClassifiedSignature !== '' &&
-      this.lastClassifiedSignature !== this.currentPayloadSignature
-    );
-  }
-
   get filteredFields(): Feature[] {
-    const query = this.searchQuery.trim().toLowerCase();
+    const q = this.searchQuery.trim().toLowerCase();
     return this.fields.filter(field => {
       const meta = this.fieldMeta(field.name);
       if (this.selectedGroup !== 'all' && meta.group !== this.selectedGroup) {
         return false;
       }
-      if (this.onlyModified && !this.isFieldModified(field.name)) {
-        return false;
-      }
-      if (this.onlyNonZero) {
-        const val = this.values[field.name];
-        if (val === null || val === '' || val === 0 || val === '0') {
-          return false;
-        }
-      }
-      if (!query) return true;
+      if (!q) return true;
       return (
-        field.name.toLowerCase().includes(query) ||
-        meta.displayLabel.toLowerCase().includes(query) ||
-        meta.hint.toLowerCase().includes(query)
+        field.name.toLowerCase().includes(q) ||
+        meta.displayLabel.toLowerCase().includes(q)
       );
     });
   }
 
-  resetFilters() {
-    this.selectedGroup = 'all';
-    this.searchQuery = '';
-    this.onlyNonZero = false;
-    this.onlyModified = false;
-  }
-
-  trackField(_index: number, field: Feature) {
-    return field.name;
-  }
-
-  loadPreset(name: string, forceClassify = false) {
+  loadPreset(name: string, runNow = true) {
     this.activePreset = name;
     this.error = '';
     const preset = this.presets[name];
@@ -468,29 +414,11 @@ export class App implements OnInit {
       this.values[field.name] = val;
       this.baselineValues[field.name] = val;
     }
-    if (forceClassify || this.autoClassify) {
+    if (runNow) {
       this.submit();
     } else {
       this.cdr.markForCheck();
     }
-  }
-
-  resetToPreset() {
-    if (!this.activePreset) return;
-    this.loadPreset(this.activePreset, this.autoClassify);
-  }
-
-  clearForm() {
-    this.activePreset = '';
-    this.error = '';
-    this.result = null;
-    this.allProbabilities = [];
-    this.lastClassifiedSignature = '';
-    for (const field of this.fields) {
-      this.values[field.name] = null;
-      this.baselineValues[field.name] = null;
-    }
-    this.cdr.markForCheck();
   }
 
   setBinaryValue(name: string, val: 0 | 1) {
@@ -503,195 +431,94 @@ export class App implements OnInit {
 
   get confidencePercent(): string {
     if (!this.result?.probabilities?.length) return 'N/A';
-    const maxP = Math.max(...this.result.probabilities);
-    return (maxP * 100).toFixed(2) + '%';
+    return (Math.max(...this.result.probabilities) * 100).toFixed(2) + '%';
   }
 
   get visibleProbabilities(): ClassProbBar[] {
     return this.showAllClasses ? this.allProbabilities : this.allProbabilities.slice(0, 5);
   }
 
-  get currentClassInfo() {
+  get explanation() {
     const label = String(this.result?.prediction || '');
     return (
-      CLASS_DESCRIPTIONS[label] ?? {
-        category: label === 'Normal' ? 'Benign IIoT Telemetry' : `Intrusion Class: ${label}`,
-        explanation: `Classified across 15 Edge-IIoTset categories using the 62-feature PP-PSFE XGBoost pipeline.`,
-        action: label === 'Normal' ? 'Permit flow.' : 'Raise alert and inspect source endpoint.',
+      CLASS_EXPLANATIONS[label] ?? {
+        summary: `Predicted as ${label} across the 15 Edge-IIoTset traffic categories.`,
+        action: label === 'Normal' ? 'Allow flow.' : 'Trigger alert and inspect endpoint.',
       }
     );
   }
 
-  get anatomy() {
-    const num = (key: string) => Number(this.values[key] ?? 0) || 0;
-    const str = (key: string) => String(this.values[key] ?? '0');
-
+  get packetSnapshot() {
+    const num = (k: string) => Number(this.values[k] ?? 0) || 0;
     const servicePort = num('psfe_service_port');
-    const ephemeralPort = num('psfe_ephemeral_port');
-    const portSpan = num('psfe_port_span');
+    const ephPort = num('psfe_ephemeral_port');
     const dir = num('psfe_pkt_direction');
-    const entropy = Math.max(0, Math.min(8, num('psfe_tcp_pay_entropy')));
-    const payloadBytes = num('psfe_tcp_pay_bytelen');
+    const entropy = Math.max(0, Math.min(4, num('psfe_tcp_pay_entropy')));
+    const bytes = num('psfe_tcp_pay_bytelen');
 
-    const activeProtocols = [
-      {
-        name: 'TCP',
-        active: num('tcp.flags') > 0 || num('tcp.len') > 0 || num('tcp.seq') > 0 || num('tcp.ack') > 0,
-      },
-      {
-        name: 'HTTP',
-        active: num('psfe_is_http_service') === 1 || str('http.request.method') !== '0',
-      },
-      {
-        name: 'MQTT',
-        active: num('psfe_is_mqtt_service') === 1 || num('mqtt.msgtype') > 0 || str('mqtt.protoname') !== '0',
-      },
-      { name: 'UDP', active: num('psfe_udp_active') === 1 || num('udp.stream') > 0 },
-      { name: 'DNS', active: num('dns.qry.name') > 0 || num('dns.qry.name.len') > 0 },
-      { name: 'ICMP', active: num('icmp.checksum') > 0 || num('icmp.seq_le') > 0 },
-      { name: 'ARP', active: num('arp.opcode') > 0 },
-    ];
-
-    const tcpFlags = [
-      { name: 'SYN', active: num('tcp.connection.syn') === 1 },
-      { name: 'SYN-ACK', active: num('tcp.connection.synack') === 1 },
-      { name: 'ACK', active: num('tcp.flags.ack') === 1 },
-      { name: 'FIN', active: num('tcp.connection.fin') === 1 },
-      { name: 'RST', active: num('tcp.connection.rst') === 1 },
-    ];
-
-    const signals: { label: string; severity: 'info' | 'alert' }[] = [];
-    if (num('psfe_is_http_service') === 1) signals.push({ label: 'HTTP Port', severity: 'info' });
-    if (num('psfe_is_mqtt_service') === 1) signals.push({ label: 'MQTT Broker :1883', severity: 'info' });
-    if (num('psfe_is_iot_c2_service') === 1) signals.push({ label: 'IoT C2 Port', severity: 'alert' });
-    if (num('psfe_is_boundary_probe') === 1) signals.push({ label: 'Port 65535 Probe', severity: 'alert' });
-    if (num('psfe_tcp_opt_has_mss') === 1) signals.push({ label: 'TCP MSS Option', severity: 'info' });
-    if (num('psfe_tcp_opt_has_ts') === 1) signals.push({ label: 'TCP Timestamp Option', severity: 'info' });
-    if (num('psfe_app_sqli_flag') === 1) signals.push({ label: 'SQLi Token Match', severity: 'alert' });
-    if (num('psfe_app_xss_flag') === 1) signals.push({ label: 'XSS Payload Match', severity: 'alert' });
-    if (num('psfe_app_upload_flag') === 1) signals.push({ label: 'HTTP Upload Flag', severity: 'alert' });
-    if (num('psfe_app_auth_flag') === 1) signals.push({ label: 'Auth Payload Flag', severity: 'alert' });
-    if (num('psfe_app_timeout_flag') === 1) signals.push({ label: 'App Timeout', severity: 'alert' });
-
-    const entropyZone =
-      payloadBytes === 0
-        ? 'Empty Payload'
-        : entropy < 2.2
-          ? 'Low / Structured'
-          : entropy < 3.4
-            ? 'Text / Protocol'
-            : 'Dense / Encrypted';
+    const signals: { label: string; alert: boolean }[] = [];
+    if (num('psfe_is_mqtt_service') === 1) signals.push({ label: 'MQTT Broker', alert: false });
+    if (num('psfe_is_http_service') === 1) signals.push({ label: 'HTTP Service', alert: false });
+    if (num('tcp.connection.rst') === 1) signals.push({ label: 'TCP RST', alert: true });
+    if (num('psfe_is_iot_c2_service') === 1) signals.push({ label: 'IoT C2 Port', alert: true });
+    if (num('psfe_app_sqli_flag') === 1) signals.push({ label: 'SQLi Marker', alert: true });
+    if (num('psfe_app_xss_flag') === 1) signals.push({ label: 'XSS Marker', alert: true });
+    if (num('psfe_app_upload_flag') === 1) signals.push({ label: 'Upload Marker', alert: true });
+    if (num('psfe_app_auth_flag') === 1) signals.push({ label: 'Auth Marker', alert: true });
 
     return {
-      servicePort,
-      ephemeralPort,
-      portSpan,
-      directionLabel: dir > 0 ? 'Client -> Service (+1)' : dir < 0 ? 'Service -> Client (-1)' : 'Symmetric (0)',
-      activeProtocols,
-      tcpFlags,
+      flowText: dir >= 0 ? `:${ephPort} → :${servicePort}` : `:${servicePort} → :${ephPort}`,
+      bytes,
       entropy,
-      entropyPct: (entropy / 8) * 100,
-      entropyZone,
-      payloadBytes,
-      signals,
+      entropyPct: (entropy / 4) * 100,
+      signals: signals.length ? signals : [{ label: 'Standard Headers', alert: false }],
     };
   }
 
-  private buildValidatedPayload(): Record<string, string | number> | null {
+  get activeAblationRows(): AblationRow[] {
+    return this.ablationSplit === 'random' ? this.randomAblation : this.temporalAblation;
+  }
+
+  benchmarkBarPct(m: ModelBenchmark): number {
+    if (this.benchmarkMetric === 'accuracy') return m.accuracyNum;
+    if (this.benchmarkMetric === 'macroF1') return m.macroF1Num * 100;
+    return Math.min(100, (m.latencyNum / 20) * 100);
+  }
+
+  benchmarkValue(m: ModelBenchmark): string {
+    if (this.benchmarkMetric === 'accuracy') return m.accuracy;
+    if (this.benchmarkMetric === 'macroF1') return m.macroF1;
+    return m.latency + ' / 1k';
+  }
+
+  submit() {
+    this.error = '';
     const payload: Record<string, string | number> = {};
     for (const field of this.fields) {
       const value = this.values[field.name];
       if (value === null || value === '') {
         this.error = `Enter a value for ${this.fieldMeta(field.name).displayLabel} (${field.name}).`;
         this.cdr.markForCheck();
-        return null;
+        return;
       }
       if (field.kind === 'number') {
         const numeric = Number(value);
         if (!Number.isFinite(numeric)) {
-          this.error = `Invalid numeric value for ${field.name}.`;
+          this.error = `Invalid number for ${field.name}.`;
           this.cdr.markForCheck();
-          return null;
-        }
-        if (
-          (field.min !== undefined && numeric < field.min) ||
-          (field.max !== undefined && numeric > field.max)
-        ) {
-          this.error = `Out-of-range value for ${field.name}.`;
-          this.cdr.markForCheck();
-          return null;
+          return;
         }
         payload[field.name] = numeric;
       } else {
         payload[field.name] = String(value);
       }
     }
-    return payload;
-  }
-
-  private buildAllProbabilities(res: PredictionResponse) {
-    const classProbs = res.class_probabilities;
-    if (classProbs) {
-      this.allProbabilities = Object.entries(classProbs)
-        .map(([name, prob]) => ({
-          name,
-          prob: Number(prob),
-          percent: (Number(prob) * 100).toFixed(2) + '%',
-        }))
-        .sort((a, b) => b.prob - a.prob);
-    } else {
-      this.allProbabilities = [];
-    }
-  }
-
-  private appendHistory(
-    res: PredictionResponse,
-    payload: Record<string, string | number>,
-    latencyMs: number | null,
-    mode: 'Live API' | 'Static Replay'
-  ) {
-    const label = String(res.prediction);
-    const maxProb = res.probabilities?.length
-      ? (Math.max(...res.probabilities) * 100).toFixed(2) + '%'
-      : 'N/A';
-
-    const sourceLabel = this.activePreset
-      ? this.modifiedCount > 0
-        ? `${this.activePreset} (Edited)`
-        : this.activePreset
-      : 'Custom JSON / Manual';
-
-    const entry: ClassificationLogEntry = {
-      id: this.nextLogId++,
-      timestamp: new Date().toLocaleTimeString([], { hour12: false }),
-      sourceLabel,
-      modifiedCount: this.modifiedCount,
-      prediction: label,
-      isNormal: label === 'Normal',
-      confidence: maxProb,
-      latencyMs,
-      mode,
-      snapshot: { ...payload },
-      response: res,
-    };
-
-    this.history = [entry, ...this.history].slice(0, 30);
-  }
-
-  submit() {
-    this.error = '';
-    const payload = this.buildValidatedPayload();
-    if (!payload) return;
-
-    const signature = this.currentPayloadSignature;
 
     if (this.deployedStatic) {
       const fallback = STATIC_PRESET_RESULTS[this.activePreset] ?? STATIC_PRESET_RESULTS['Normal'];
       this.result = fallback;
       this.lastLatencyMs = 0;
-      this.lastClassifiedSignature = signature;
-      this.buildAllProbabilities(fallback);
-      this.appendHistory(fallback, payload, 0, 'Static Replay');
+      this.buildProbabilities(fallback);
       this.cdr.markForCheck();
       return;
     }
@@ -701,22 +528,19 @@ export class App implements OnInit {
     this.cdr.markForCheck();
 
     this.api.predict(payload).subscribe({
-      next: result => {
+      next: res => {
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-        const elapsed = Math.max(1, Math.round(now - started));
-        this.result = result;
-        this.lastLatencyMs = elapsed;
-        this.lastClassifiedSignature = signature;
+        this.result = res;
+        this.lastLatencyMs = Math.max(1, Math.round(now - started));
         this.apiState = 'online';
-        this.buildAllProbabilities(result);
-        this.appendHistory(result, payload, elapsed, 'Live API');
+        this.buildProbabilities(res);
         this.loading = false;
         this.cdr.markForCheck();
       },
       error: err => {
         this.error =
-          `Inference error ${err.status || ''}: ` +
-          (err.error?.error || err.message || 'Unable to reach Flask API on 127.0.0.1:5050.');
+          `API error ${err.status || ''}: ` +
+          (err.error?.error || err.message || 'Check Flask server on port 5050.');
         if (!err.status || err.status === 0 || err.status >= 502) {
           this.apiState = 'offline';
         }
@@ -726,30 +550,25 @@ export class App implements OnInit {
     });
   }
 
-  loadHistoryEntry(entry: ClassificationLogEntry) {
-    this.activePreset = '';
-    this.error = '';
-    for (const field of this.fields) {
-      this.values[field.name] = entry.snapshot[field.name] ?? null;
-      this.baselineValues[field.name] = entry.snapshot[field.name] ?? null;
+  private buildProbabilities(res: PredictionResponse) {
+    if (!res.class_probabilities) {
+      this.allProbabilities = [];
+      return;
     }
-    this.result = entry.response;
-    this.lastLatencyMs = entry.latencyMs;
-    this.lastClassifiedSignature = this.currentPayloadSignature;
-    this.buildAllProbabilities(entry.response);
-    this.activeTab = 'classifier';
-    this.cdr.markForCheck();
+    this.allProbabilities = Object.entries(res.class_probabilities)
+      .map(([name, prob]) => ({
+        name,
+        prob: Number(prob),
+        percent: (Number(prob) * 100).toFixed(2) + '%',
+      }))
+      .sort((a, b) => b.prob - a.prob);
   }
 
-  clearHistory() {
-    this.history = [];
-  }
-
-  /* JSON Modal Inspector */
+  /* JSON Modal */
   openJsonModal() {
     const out: Record<string, string | number | null> = {};
-    for (const field of this.fields) {
-      out[field.name] = this.values[field.name] ?? null;
+    for (const f of this.fields) {
+      out[f.name] = this.values[f.name] ?? null;
     }
     this.jsonDraft = JSON.stringify(out, null, 2);
     this.jsonError = '';
@@ -769,13 +588,13 @@ export class App implements OnInit {
       setTimeout(() => {
         this.jsonCopied = false;
         this.cdr.markForCheck();
-      }, 1800);
+      }, 1600);
     } catch {
-      this.jsonError = 'Clipboard access denied by browser.';
+      this.jsonError = 'Clipboard permission denied.';
     }
   }
 
-  applyJsonPayload(andClassify: boolean) {
+  applyJsonPayload(runNow: boolean) {
     this.jsonError = '';
     let parsed: unknown;
     try {
@@ -785,78 +604,37 @@ export class App implements OnInit {
       return;
     }
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      this.jsonError = 'JSON payload must be an object with 62 feature keys.';
+      this.jsonError = 'Payload must be a 62-key JSON object.';
       return;
     }
-
-    const record = parsed as Record<string, unknown>;
-    const expectedKeys = new Set(this.fields.map(f => f.name));
-    const missing = this.fields.filter(f => !(f.name in record)).map(f => f.name);
-    const extra = Object.keys(record).filter(k => !expectedKeys.has(k));
-
-    if (missing.length || extra.length) {
-      this.jsonError = `Schema mismatch — missing: ${missing.length}, unexpected: ${extra.length}.`;
+    const obj = parsed as Record<string, unknown>;
+    const expected = new Set(this.fields.map(f => f.name));
+    const missing = this.fields.filter(f => !(f.name in obj)).length;
+    const extra = Object.keys(obj).filter(k => !expected.has(k)).length;
+    if (missing || extra) {
+      this.jsonError = `Schema mismatch (missing ${missing}, unexpected ${extra}).`;
       return;
     }
-
     this.activePreset = '';
-    for (const field of this.fields) {
-      const raw = record[field.name];
-      if (field.kind === 'number') {
-        const numeric = Number(raw);
-        if (!Number.isFinite(numeric)) {
-          this.jsonError = `Expected finite number for "${field.name}".`;
+    for (const f of this.fields) {
+      const raw = obj[f.name];
+      if (f.kind === 'number') {
+        const n = Number(raw);
+        if (!Number.isFinite(n)) {
+          this.jsonError = `Invalid number for ${f.name}.`;
           return;
         }
-        this.values[field.name] = numeric;
+        this.values[f.name] = n;
       } else {
-        this.values[field.name] = String(raw);
+        this.values[f.name] = String(raw);
       }
-      this.baselineValues[field.name] = this.values[field.name];
+      this.baselineValues[f.name] = this.values[f.name];
     }
-
     this.jsonModalOpen = false;
-    this.cdr.markForCheck();
-    if (andClassify) {
+    if (runNow) {
       this.submit();
-    }
-  }
-
-  /* Interactive Benchmark Helpers */
-  metricDisplay(model: ModelBenchmark): string {
-    switch (this.selectedMetric) {
-      case 'accuracy': return model.accuracy;
-      case 'macroF1': return model.macroF1;
-      case 'rocAuc': return model.rocAuc;
-      case 'prAuc': return model.prAuc;
-      case 'overfitGap': return model.overfitGap;
-      case 'latency': return model.latency;
-    }
-  }
-
-  metricBarPercent(model: ModelBenchmark): number {
-    switch (this.selectedMetric) {
-      case 'accuracy': return model.accuracyNum;
-      case 'macroF1': return model.macroF1Num * 100;
-      case 'rocAuc': return model.rocAucNum * 100;
-      case 'prAuc': return model.prAucNum * 100;
-      case 'overfitGap': return Math.min(100, (model.overfitGapNum / 0.025) * 100);
-      case 'latency': return Math.min(100, (model.latencyNum / 20) * 100);
-    }
-  }
-
-  get activeMetricDirection(): string {
-    return this.benchmarkMetrics.find(m => m.key === this.selectedMetric)?.direction ?? '';
-  }
-
-  isMetricWinner(model: ModelBenchmark): boolean {
-    switch (this.selectedMetric) {
-      case 'accuracy': return model.accuracyNum === 96.49;
-      case 'macroF1': return model.macroF1Num === 0.9618;
-      case 'rocAuc': return model.rocAucNum === 0.9991;
-      case 'prAuc': return model.prAucNum === 0.9888;
-      case 'overfitGap': return model.overfitGapNum === 0.0016;
-      case 'latency': return model.latencyNum === 0.43;
+    } else {
+      this.cdr.markForCheck();
     }
   }
 }

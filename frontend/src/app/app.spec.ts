@@ -24,7 +24,7 @@ describe('App', () => {
     httpMock.verify();
   });
 
-  it('should create the app and render inspector title', async () => {
+  it('should create the app and render clean title', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
@@ -44,7 +44,7 @@ describe('App', () => {
 
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Edge-IIoTset Packet Inspector');
+    expect(compiled.querySelector('h1')?.textContent).toContain('Edge-IIoTset Intrusion Detector');
   });
 
   it('should cover all 62 features in metadata and layer partitions', () => {
@@ -64,37 +64,17 @@ describe('App', () => {
     expect(sum).toBe(62);
   });
 
-  it('should track modified fields and reset back to preset', () => {
+  it('should switch ablation split between random and temporal views', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
-    fixture.detectChanges();
+    expect(app.ablationSplit).toBe('random');
+    expect(app.activeAblationRows[0].accuracy).toBe('96.57%');
 
-    httpMock.expectOne('/api/health').flush({ status: 'ok', features: 62, task: 'classification', classes: [] });
-    httpMock.expectOne('/api/predict').flush({
-      prediction: 'Normal',
-      predicted_class_index: 7,
-      task: 'classification',
-      probabilities: [0.99],
-      class_probabilities: { Normal: 0.99 },
-    });
-
-    expect(app.modifiedCount).toBe(0);
-    app.setBinaryValue('psfe_app_sqli_flag', 1);
-    expect(app.modifiedCount).toBe(1);
-    expect(app.isStaleResult).toBe(true);
-
-    app.resetToPreset();
-    httpMock.expectOne('/api/predict').flush({
-      prediction: 'Normal',
-      predicted_class_index: 7,
-      task: 'classification',
-      probabilities: [0.99],
-      class_probabilities: { Normal: 0.99 },
-    });
-    expect(app.modifiedCount).toBe(0);
+    app.ablationSplit = 'temporal';
+    expect(app.activeAblationRows[0].accuracy).toBe('91.70%');
   });
 
-  it('should toggle dark and light theme', () => {
+  it('should toggle light and dark theme', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     const initial = app.theme;
@@ -120,8 +100,8 @@ describe('App', () => {
       });
       await appRef.whenStable();
       expect(errors.length).toBe(0);
-      expect(root.querySelector('h1')?.textContent).toContain('Edge-IIoTset Packet Inspector');
-      expect(root.querySelectorAll('.field-card').length).toBe(62);
+      expect(root.querySelector('h1')?.textContent).toContain('Edge-IIoTset Intrusion Detector');
+      expect(root.querySelectorAll('.preset-card').length).toBe(4);
       appRef.destroy();
     } finally {
       console.error = origError;

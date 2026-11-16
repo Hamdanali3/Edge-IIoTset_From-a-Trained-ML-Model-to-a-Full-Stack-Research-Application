@@ -44,7 +44,7 @@ describe('App', () => {
 
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Edge-IIoTset Intrusion Detector');
+    expect(compiled.querySelector('h1')?.textContent).toContain('Edge-IIoTset');
   });
 
   it('should cover all 62 features in metadata and layer partitions', () => {
@@ -64,14 +64,14 @@ describe('App', () => {
     expect(sum).toBe(62);
   });
 
-  it('should switch ablation split between random and temporal views', () => {
+  it('should switch ablation chart between random and temporal splits', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     expect(app.ablationSplit).toBe('random');
-    expect(app.activeAblationRows[0].accuracy).toBe('96.57%');
+    expect(app.activeAblationBars[3].accuracy).toBe(96.57);
 
     app.ablationSplit = 'temporal';
-    expect(app.activeAblationRows[0].accuracy).toBe('91.70%');
+    expect(app.activeAblationBars[3].accuracy).toBe(91.70);
   });
 
   it('should toggle light and dark theme', () => {
@@ -100,8 +100,9 @@ describe('App', () => {
       });
       await appRef.whenStable();
       expect(errors.length).toBe(0);
-      expect(root.querySelector('h1')?.textContent).toContain('Edge-IIoTset Intrusion Detector');
-      expect(root.querySelectorAll('.preset-card').length).toBe(4);
+      expect(root.querySelector('h1')?.textContent).toContain('Edge-IIoTset');
+      expect(root.querySelectorAll('.preset-tile').length).toBe(4);
+      expect(root.querySelectorAll('.svg-chart').length).toBe(2);
       appRef.destroy();
     } finally {
       console.error = origError;

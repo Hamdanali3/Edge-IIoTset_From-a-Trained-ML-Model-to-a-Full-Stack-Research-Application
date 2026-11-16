@@ -2,43 +2,40 @@
   <div class="header-inner">
     <div class="brand">
       <div class="brand-icon" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 3l8 3.5v5.5c0 5.1-3.4 9.5-8 11-4.6-1.5-8-5.9-8-11V6.5L12 3z"/>
           <path d="M7.5 12h2.2l1.6-3 2.1 6 1.6-3h2.5"/>
         </svg>
       </div>
-      <div>
-        <h1 class="brand-title">Edge-IIoTset Intrusion Detector</h1>
-        <span class="brand-sub">Leakage-Sanitized 62-Feature PP-PSFE · XGBoost</span>
-      </div>
+      <h1 class="brand-title">Edge-IIoTset · PP-PSFE Intrusion Detector</h1>
     </div>
 
     <div class="header-actions">
       <button
         type="button"
-        class="status-badge"
+        class="status-pill"
         [class.is-online]="apiState === 'online'"
         [class.is-offline]="apiState === 'offline'"
         [class.is-static]="apiState === 'static'"
         (click)="checkHealth()">
         <span class="status-dot" aria-hidden="true"></span>
         @if (apiState === 'online') {
-          <span>Flask API Connected ({{ apiLatencyMs }} ms)</span>
+          <span>API Online ({{ apiLatencyMs }} ms)</span>
         } @else if (apiState === 'offline') {
-          <span>API Offline · Retry</span>
+          <span>API Offline</span>
         } @else if (apiState === 'static') {
-          <span>Static Demo Mode</span>
+          <span>Static Demo</span>
         } @else {
           <span>Connecting…</span>
         }
       </button>
 
-      <button type="button" class="btn-outline" (click)="toggleTheme()">
-        {{ theme === 'light' ? 'Dark Mode' : 'Light Mode' }}
+      <button type="button" class="btn-ghost" (click)="toggleTheme()">
+        {{ theme === 'light' ? 'Dark' : 'Light' }}
       </button>
 
       <a
-        class="btn-outline"
+        class="btn-ghost"
         href="Hamdan_Ali_PP-PSFE_IEEE_Paper.pdf"
         download="Hamdan_Ali_PP-PSFE_IEEE_Paper.pdf"
         target="_blank"
@@ -52,269 +49,453 @@
 <main class="container">
   @if (deployedStatic) {
     <div class="notice-bar" role="status">
-      <strong>GitHub Pages Static Mode:</strong>
-      <span>Live Flask predictions run locally on <code class="mono">127.0.0.1:5050</code>; presets below replay verified model outputs.</span>
+      Static GitHub Pages demo — live Flask inference runs locally on <code class="mono">127.0.0.1:5050</code>.
     </div>
   }
 
   <!-- ===================================================================
-       1. THE RESEARCH IN ONE GLANCE (Problem -> PP-PSFE -> Result)
+       1. VISUAL PIPELINE FLOW (Shows the Entire Work in 4 Boxes)
        =================================================================== -->
-  <section class="intro-hero" aria-label="Research Summary">
-    <div class="hero-top">
+  <section class="card" aria-label="Research Pipeline">
+    <div class="flow-banner-head">
       <div>
-        <span class="section-kicker">Full-Stack ML Security Research</span>
-        <h2 class="hero-headline">Stopping Dataset Leakage in IIoT Intrusion Detection</h2>
-        <p class="hero-summary">
-          Models on Edge-IIoTset often score 99%+ by reading file-export artifacts (<code class="mono">"0"</code> vs <code class="mono">"0.0"</code>) and lab IPs. Removing those leaks drops accuracy to <strong>88.97%</strong>. Extracting <strong>24 privacy-preserving structural features (PP-PSFE)</strong> recovers accuracy to <strong>96.49%</strong> without keeping any IPs, URLs, or raw payloads.
-        </p>
-      </div>
-
-      <div class="stat-pair">
-        <div class="stat-pill is-highlight">
-          <span class="stat-val">96.49%</span>
-          <span class="stat-lbl">Test Accuracy (15 classes)</span>
-        </div>
-        <div class="stat-pill">
-          <span class="stat-val">3.54 ms</span>
-          <span class="stat-lbl">Per 1,000 packet flows</span>
-        </div>
+        <h2>How PP-PSFE Fixes Dataset Leakage</h2>
+        <p>Removes export leaks &amp; lab IPs, extracts 24 structural signals, and classifies 15 attack classes in 3.54 ms.</p>
       </div>
     </div>
 
-    <div class="pipeline-steps">
-      <div class="step-card">
-        <span class="step-num">Step 1 · Audit &amp; Clean</span>
-        <h3>Remove Dataset Cheating</h3>
-        <ul>
-          <li>Unifies <code class="mono">"0.0"</code> → <code class="mono">"0"</code> across 7 columns</li>
-          <li>Fixes 93 shifted TShark DNS rows</li>
-          <li>Drops 8 dead fields, 5,414 duplicates &amp; 15 lab IDs</li>
-        </ul>
+    <div class="pipeline-visual">
+      <div class="stage-box">
+        <span class="stage-val">157,800</span>
+        <span class="stage-lbl">Raw Edge-IIoTset Flows</span>
       </div>
 
-      <div class="step-card">
-        <span class="step-num">Step 2 · Extract PP-PSFE</span>
-        <h3>Keep Structure, Drop Identity</h3>
-        <ul>
-          <li><strong>9</strong> direction-invariant port roles</li>
-          <li><strong>6</strong> TCP options &amp; entropy (0–4 bits)</li>
-          <li><strong>9</strong> HTTP/MQTT lengths &amp; attack flags</li>
-        </ul>
+      <div class="stage-arrow" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
       </div>
 
-      <div class="step-card">
-        <span class="step-num">Step 3 · Train &amp; Serve</span>
-        <h3>Zero-Skew Production Bundle</h3>
-        <ul>
-          <li>Train-only <code class="mono">OrdinalEncoder</code> + <code class="mono">StandardScaler</code></li>
-          <li>XGBoost on 62 features (152,386 flows)</li>
-          <li>Served live via Flask REST API &amp; Angular</li>
-        </ul>
+      <div class="stage-box is-drop">
+        <span class="stage-val">88.97%</span>
+        <span class="stage-lbl">38 Core Only (Leaks Removed)</span>
+      </div>
+
+      <div class="stage-arrow" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </div>
+
+      <div class="stage-box">
+        <span class="stage-val">+24 PP-PSFE</span>
+        <span class="stage-lbl">62 Privacy-Safe Features</span>
+      </div>
+
+      <div class="stage-arrow" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </div>
+
+      <div class="stage-box is-win">
+        <span class="stage-val">96.49%</span>
+        <span class="stage-lbl">XGBoost · 0.9618 Macro-F1</span>
       </div>
     </div>
   </section>
 
   <!-- ===================================================================
-       2. LIVE INTERACTIVE DETECTOR
+       2. VISUAL LIVE PACKET DETECTOR
        =================================================================== -->
-  <section class="section" aria-label="Live Packet Classifier">
-    <div class="section-head">
-      <span class="section-kicker">Interactive Demo</span>
-      <h2 class="section-title">Test a Network Flow Packet</h2>
-      <p class="section-desc">Click any held-out traffic capture below to classify all 62 features through the live XGBoost pipeline.</p>
-    </div>
-
-    <div class="demo-grid">
-      <!-- Left: Simple 4-Packet Picker -->
-      <div class="card">
-        <div class="preset-list">
-          @for (pName of presetNames; track pName) {
-            @let info = presetCard(pName);
-            <button
-              type="button"
-              class="preset-card"
-              [class.is-safe]="pName === 'Normal'"
-              [class.is-threat]="pName !== 'Normal'"
-              [class.is-active]="activePreset === pName"
-              (click)="loadPreset(pName, true)">
-              <div>
-                <span class="preset-title">{{ info.title }}</span>
-                <span class="preset-sub">{{ info.subtitle }}</span>
-              </div>
-              <span class="preset-tag">{{ info.tag }}</span>
-            </button>
-          }
-        </div>
-
-        <div class="demo-tools">
-          <button type="button" class="btn-outline" (click)="showEditor = !showEditor">
-            {{ showEditor ? 'Hide 62 Inputs' : 'Edit 62 Features' }}
-            @if (modifiedCount > 0) {
-              <span>({{ modifiedCount }} edited)</span>
-            }
+  <section class="classifier-grid" aria-label="Interactive Classifier">
+    <!-- Left: 4 Visual Packet Tiles -->
+    <div class="card">
+      <div class="preset-stack">
+        @for (pName of presetNames; track pName) {
+          @let p = presetLabel(pName);
+          <button
+            type="button"
+            class="preset-tile"
+            [class.is-safe]="pName === 'Normal'"
+            [class.is-threat]="pName !== 'Normal'"
+            [class.is-active]="activePreset === pName"
+            (click)="loadPreset(pName, true)">
+            <span class="preset-name">{{ p.title }}</span>
+            <span class="preset-port">{{ p.tag }}</span>
           </button>
-
-          <button type="button" class="btn-outline" (click)="openJsonModal()">
-            View / Paste JSON
-          </button>
-        </div>
+        }
       </div>
 
-      <!-- Right: Clear Visual Verdict -->
-      <div
-        class="card verdict-card"
-        [class.is-safe]="result && isNormalPrediction"
-        [class.is-threat]="result && !isNormalPrediction"
-        aria-live="polite">
-        @if (error) {
-          <div class="error-box" role="alert">{{ error }}</div>
-        }
+      <div class="tile-actions">
+        <button type="button" class="btn-ghost" (click)="editorModalOpen = true">Edit 62 Inputs</button>
+        <button type="button" class="btn-ghost" (click)="openJsonModal()">JSON</button>
+      </div>
+    </div>
 
-        @if (loading && !result) {
-          <p style="margin: 0.5rem 0; color: var(--text-muted);">Running 62-feature XGBoost inference…</p>
-        }
+    <!-- Right: Confidence Ring + Flow Diagram + Probability Bars -->
+    <div
+      class="card verdict-stage"
+      [class.is-safe]="result && isNormalPrediction"
+      [class.is-threat]="result && !isNormalPrediction"
+      aria-live="polite">
+      @if (error) {
+        <div class="error-box" role="alert">{{ error }}</div>
+      }
 
-        @if (result) {
-          <div class="verdict-banner">
-            <div>
-              <span
-                class="verdict-pill"
+      @if (loading && !result) {
+        <p style="margin: 0; color: var(--text-muted);">Classifying 62 features…</p>
+      }
+
+      @if (result) {
+        <div class="verdict-top">
+          <div>
+            <span
+              class="verdict-badge"
+              [class.is-safe]="isNormalPrediction"
+              [class.is-threat]="!isNormalPrediction">
+              {{ isNormalPrediction ? 'Safe Flow' : 'Intrusion Alert' }}
+            </span>
+            <h2 class="verdict-title">{{ result.prediction }}</h2>
+            <p class="verdict-caption">{{ shortCaption }}</p>
+          </div>
+
+          <!-- Circular SVG Confidence Gauge -->
+          <div class="ring-wrap">
+            <svg class="ring-svg" width="96" height="96" viewBox="0 0 96 96" aria-hidden="true">
+              <circle class="ring-bg" cx="48" cy="48" r="40" />
+              <circle
+                class="ring-progress"
                 [class.is-safe]="isNormalPrediction"
-                [class.is-threat]="!isNormalPrediction">
-                {{ isNormalPrediction ? 'Safe Telemetry' : 'Attack Detected' }}
-              </span>
-              <h3 class="verdict-name">{{ result.prediction }}</h3>
-              <span class="verdict-meta">
-                Class #{{ result.predicted_class_index }}
-                @if (lastLatencyMs !== null) {
-                  <span>· {{ deployedStatic ? 'Static replay' : lastLatencyMs + ' ms' }}</span>
-                }
-              </span>
-            </div>
-
-            <div class="confidence-box">
-              <span class="confidence-lbl">Confidence</span>
-              <span class="confidence-num">{{ confidencePercent }}</span>
+                [class.is-threat]="!isNormalPrediction"
+                cx="48"
+                cy="48"
+                r="40"
+                [attr.stroke-dasharray]="ringCircumference"
+                [attr.stroke-dashoffset]="ringDashOffset" />
+            </svg>
+            <div class="ring-center">
+              <span class="ring-pct">{{ confidencePercent }}</span>
+              <span class="ring-lbl">{{ lastLatencyMs !== null && !deployedStatic ? lastLatencyMs + ' ms' : 'Conf.' }}</span>
             </div>
           </div>
+        </div>
 
-          <div class="summary-row">
-            <div class="summary-box">
-              <strong>Why It Matched</strong>
-              <p>{{ explanation.summary }}</p>
-            </div>
-            <div class="summary-box">
-              <strong>Recommended Action</strong>
-              <p>{{ explanation.action }}</p>
-            </div>
-          </div>
+        <!-- Visual Packet Path SVG + Entropy Gauge -->
+        <div class="packet-visual-bar">
+          <svg class="packet-svg" viewBox="0 0 320 56" role="img" [attr.aria-label]="packetVisual.leftPort + ' to ' + packetVisual.rightPort">
+            <rect x="2" y="8" width="92" height="40" rx="8" fill="var(--bg-card)" stroke="var(--border-strong)" />
+            <text x="48" y="24" text-anchor="middle" font-size="10" fill="var(--text-faint)">{{ packetVisual.leftRole }}</text>
+            <text x="48" y="39" text-anchor="middle" font-size="12" font-weight="700" font-family="var(--font-mono)" fill="var(--text)">{{ packetVisual.leftPort }}</text>
 
-          <!-- Simple Visual Packet Signals -->
-          <div class="snapshot-strip">
-            <div>
-              <span class="snap-label">Port Flow</span>
-              <span class="snap-val">{{ packetSnapshot.flowText }}</span>
-              <div style="font-size: 0.74rem; color: var(--text-faint);">{{ packetSnapshot.bytes }} B payload</div>
-            </div>
+            <line x1="98" y1="28" x2="216" y2="28" [attr.stroke]="isNormalPrediction ? 'var(--safe)' : 'var(--threat)'" stroke-width="2.5" stroke-dasharray="4 3" />
+            <polygon points="214,23 224,28 214,33" [attr.fill]="isNormalPrediction ? 'var(--safe)' : 'var(--threat)'" />
+            <rect x="124" y="13" width="72" height="17" rx="8" fill="var(--bg-card)" stroke="var(--border)" />
+            <text x="160" y="25" text-anchor="middle" font-size="10" font-weight="700" font-family="var(--font-mono)" fill="var(--text)">{{ packetVisual.proto }} · {{ packetVisual.bytes }}B</text>
 
-            <div>
-              <span class="snap-label">Payload Entropy</span>
-              <span class="snap-val">{{ packetSnapshot.entropy.toFixed(2) }} / 4.00 bits</span>
-              <div class="mini-track">
-                <div class="mini-fill is-entropy" [style.width.%]="packetSnapshot.entropyPct"></div>
-              </div>
-            </div>
+            <rect x="226" y="8" width="92" height="40" rx="8" fill="var(--bg-card)" stroke="var(--border-strong)" />
+            <text x="272" y="24" text-anchor="middle" font-size="10" fill="var(--text-faint)">{{ packetVisual.rightRole }}</text>
+            <text x="272" y="39" text-anchor="middle" font-size="12" font-weight="700" font-family="var(--font-mono)" fill="var(--text)">{{ packetVisual.rightPort }}</text>
+          </svg>
 
-            <div>
-              <span class="snap-label">Active Signals</span>
-              <div class="chip-list">
-                @for (sig of packetSnapshot.signals; track sig.label) {
-                  <span class="signal-chip" [class.is-alert]="sig.alert">{{ sig.label }}</span>
-                }
-              </div>
+          <div class="entropy-box">
+            <div class="entropy-head">
+              <span>Payload Entropy</span>
+              <span class="mono">{{ packetVisual.entropy.toFixed(2) }} / 4.00</span>
+            </div>
+            <div class="track-bar">
+              <div class="fill-bar is-entropy" [style.width.%]="packetVisual.entropyPct"></div>
             </div>
           </div>
+        </div>
 
-          <!-- Class Probability Bars -->
-          @if (allProbabilities.length) {
-            <div class="prob-header">
-              <h3>{{ showAllClasses ? 'All 15 Traffic Classes' : 'Top 5 Class Probabilities' }}</h3>
+        <!-- Clean Probability Bars -->
+        @if (allProbabilities.length) {
+          <div>
+            <div class="prob-head">
+              <span>{{ showAllClasses ? 'All 15 Class Probabilities' : 'Top 4 Class Probabilities' }}</span>
               <button type="button" class="link-btn" (click)="showAllClasses = !showAllClasses">
-                {{ showAllClasses ? 'Show top 5' : 'Show all 15 classes' }}
+                {{ showAllClasses ? 'Top 4' : 'All 15 classes' }}
               </button>
             </div>
-
-            <div class="prob-bars">
+            <div class="prob-list">
               @for (bar of visibleProbabilities; track bar.name) {
                 <div class="prob-row">
                   <span class="prob-name" [title]="bar.name">{{ bar.name }}</span>
-                  <div class="mini-track" style="margin-top: 0;">
+                  <div class="track-bar">
                     <div
-                      class="mini-fill"
+                      class="fill-bar"
                       [class.is-safe]="bar.name === 'Normal'"
                       [class.is-threat]="bar.name !== 'Normal'"
                       [style.width.%]="bar.prob * 100">
                     </div>
                   </div>
-                  <span class="prob-pct">{{ bar.percent }}</span>
+                  <span class="mono" style="text-align: right; font-weight: 700;">{{ bar.percent }}</span>
                 </div>
               }
             </div>
-          }
+          </div>
         }
+      }
+    </div>
+  </section>
+
+  <!-- ===================================================================
+       3. INTERACTIVE VISUAL SVG CHARTS
+       =================================================================== -->
+  <section class="charts-grid" aria-label="Research Charts">
+    <!-- Chart 1: Vertical SVG Ablation Column Chart -->
+    <div class="card">
+      <div class="chart-head">
+        <div>
+          <h3>PP-PSFE Feature Ablation</h3>
+          <p>{{ ablationSplit === 'random' ? '+7.60% recovery over cleaned core features' : 'Role flags keep 91.70% under time drift' }}</p>
+        </div>
+
+        <div class="seg-tabs">
+          <button type="button" class="seg-tab" [class.is-active]="ablationSplit === 'random'" (click)="ablationSplit = 'random'">
+            Random Split
+          </button>
+          <button type="button" class="seg-tab" [class.is-active]="ablationSplit === 'temporal'" (click)="ablationSplit = 'temporal'">
+            Time-Ordered
+          </button>
+        </div>
       </div>
+
+      <svg class="svg-chart" viewBox="0 0 480 232" role="img" aria-label="Feature ablation accuracy chart">
+        <!-- Y Gridlines (60% to 100%) -->
+        <line x1="46" y1="24" x2="466" y2="24" stroke="var(--border)" stroke-dasharray="3 3" />
+        <text x="38" y="28" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">100%</text>
+
+        <line x1="46" y1="60" x2="466" y2="60" stroke="var(--border)" stroke-dasharray="3 3" />
+        <text x="38" y="64" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">90%</text>
+
+        <line x1="46" y1="96" x2="466" y2="96" stroke="var(--border)" stroke-dasharray="3 3" />
+        <text x="38" y="100" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">80%</text>
+
+        <line x1="46" y1="132" x2="466" y2="132" stroke="var(--border)" stroke-dasharray="3 3" />
+        <text x="38" y="136" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">70%</text>
+
+        <line x1="46" y1="168" x2="466" y2="168" stroke="var(--border)" stroke-dasharray="3 3" />
+        <text x="38" y="172" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">60%</text>
+
+        <line x1="46" y1="186" x2="466" y2="186" stroke="var(--border-strong)" />
+
+        @for (b of activeAblationBars; track b.shortLabel) {
+          <rect
+            [attr.x]="b.barX"
+            [attr.y]="b.barY"
+            width="54"
+            [attr.height]="b.barHeight"
+            rx="6"
+            [attr.fill]="b.tone === 'best' ? 'var(--safe)' : b.tone === 'warn' ? 'var(--threat)' : 'var(--accent)'"
+            opacity="0.9" />
+          <text
+            [attr.x]="b.centerX"
+            [attr.y]="b.barY - 6"
+            text-anchor="middle"
+            font-size="11"
+            font-weight="700"
+            font-family="var(--font-mono)"
+            fill="var(--text)">
+            {{ b.accuracy.toFixed(2) }}%
+          </text>
+          <text
+            [attr.x]="b.centerX"
+            y="204"
+            text-anchor="middle"
+            font-size="11"
+            font-weight="600"
+            fill="var(--text)">
+            {{ b.shortLabel }}
+          </text>
+          <text
+            [attr.x]="b.centerX"
+            y="219"
+            text-anchor="middle"
+            font-size="10"
+            font-family="var(--font-mono)"
+            fill="var(--text-faint)">
+            {{ b.subLabel }}
+          </text>
+        }
+      </svg>
     </div>
 
-    <!-- Collapsible 62-Feature Editor -->
-    @if (showEditor) {
-      <form class="card editor-drawer" (ngSubmit)="submit()">
-        <div class="editor-toolbar">
-          <div class="pill-tabs">
-            @for (grp of featureGroups; track grp.id) {
-              <button
-                type="button"
-                class="pill-tab"
-                [class.is-active]="selectedGroup === grp.id"
-                (click)="selectedGroup = grp.id">
-                {{ grp.label }} ({{ groupCount(grp.id) }})
-              </button>
+    <!-- Chart 2: Speed-vs-Accuracy Pareto Plot OR HTTP Attack F1 Chart -->
+    <div class="card">
+      <div class="chart-head">
+        <div>
+          <h3>{{ chartMode === 'pareto' ? 'Accuracy vs. Speed (4 Models)' : 'HTTP Attack F1 Recovery' }}</h3>
+          <p>{{ chartMode === 'pareto' ? 'Top-left is best (30,478 test flows)' : 'Logistic Regression vs. XGBoost + PP-PSFE' }}</p>
+        </div>
+
+        <div class="seg-tabs">
+          <button type="button" class="seg-tab" [class.is-active]="chartMode === 'pareto'" (click)="chartMode = 'pareto'">
+            Speed vs Acc
+          </button>
+          <button type="button" class="seg-tab" [class.is-active]="chartMode === 'httpF1'" (click)="chartMode = 'httpF1'">
+            HTTP F1
+          </button>
+        </div>
+      </div>
+
+      @if (chartMode === 'pareto') {
+        <svg class="svg-chart" viewBox="0 0 480 232" role="img" aria-label="Model accuracy versus inference latency scatter plot">
+          <!-- Y Gridlines (82% to 98%) -->
+          <line x1="56" y1="26" x2="456" y2="26" stroke="var(--border)" stroke-dasharray="3 3" />
+          <text x="48" y="30" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">98%</text>
+
+          <line x1="56" y1="66" x2="456" y2="66" stroke="var(--border)" stroke-dasharray="3 3" />
+          <text x="48" y="70" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">94%</text>
+
+          <line x1="56" y1="106" x2="456" y2="106" stroke="var(--border)" stroke-dasharray="3 3" />
+          <text x="48" y="110" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">90%</text>
+
+          <line x1="56" y1="146" x2="456" y2="146" stroke="var(--border)" stroke-dasharray="3 3" />
+          <text x="48" y="150" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">86%</text>
+
+          <line x1="56" y1="186" x2="456" y2="186" stroke="var(--border-strong)" />
+          <text x="48" y="190" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">82%</text>
+
+          <!-- X Axis Ticks (0 to 20 ms) -->
+          <text x="56" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">0 ms</text>
+          <text x="156" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">5 ms</text>
+          <text x="256" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">10 ms</text>
+          <text x="356" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">15 ms</text>
+          <text x="456" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">20 ms</text>
+          <text x="256" y="220" text-anchor="middle" font-size="10" fill="var(--text-muted)">← Faster inference (ms per 1,000 flows)</text>
+
+          @for (pt of paretoPoints; track pt.name) {
+            @if (pt.best) {
+              <circle [attr.cx]="pt.cx" [attr.cy]="pt.cy" r="14" fill="var(--safe)" opacity="0.18" />
             }
-          </div>
+            <circle
+              [attr.cx]="pt.cx"
+              [attr.cy]="pt.cy"
+              [attr.r]="pt.best ? 7 : 5.5"
+              [attr.fill]="pt.best ? 'var(--safe)' : 'var(--accent)'" />
+            <text
+              [attr.x]="pt.lx"
+              [attr.y]="pt.ly"
+              font-size="11"
+              [attr.font-weight]="pt.best ? 700 : 600"
+              fill="var(--text)">
+              {{ pt.name }} ({{ pt.acc }})
+            </text>
+            <text
+              [attr.x]="pt.lx"
+              [attr.y]="pt.ly + 13"
+              font-size="10"
+              font-family="var(--font-mono)"
+              fill="var(--text-faint)">
+              {{ pt.ms }}
+            </text>
+          }
+        </svg>
+      } @else {
+        <svg class="svg-chart" viewBox="0 0 480 232" role="img" aria-label="HTTP attack F1 comparison chart">
+          <line x1="46" y1="26" x2="466" y2="26" stroke="var(--border)" stroke-dasharray="3 3" />
+          <text x="38" y="30" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">1.00</text>
 
-          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-            <input
-              type="search"
-              class="search-input"
-              name="featureSearch"
-              placeholder="Search feature name…"
-              [(ngModel)]="searchQuery" />
+          <line x1="46" y1="66" x2="466" y2="66" stroke="var(--border)" stroke-dasharray="3 3" />
+          <text x="38" y="70" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">0.75</text>
 
-            <button type="submit" class="btn-primary" [disabled]="loading">
-              @if (loading) {
-                <span class="spinner" aria-hidden="true"></span>
-                <span>Classifying…</span>
-              } @else {
-                <span>Run Classification</span>
-              }
+          <line x1="46" y1="106" x2="466" y2="106" stroke="var(--border)" stroke-dasharray="3 3" />
+          <text x="38" y="110" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">0.50</text>
+
+          <line x1="46" y1="146" x2="466" y2="146" stroke="var(--border)" stroke-dasharray="3 3" />
+          <text x="38" y="150" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">0.25</text>
+
+          <line x1="46" y1="186" x2="466" y2="186" stroke="var(--border-strong)" />
+
+          @for (item of httpRecovery; track item.label) {
+            <rect
+              [attr.x]="item.centerX - 22"
+              [attr.y]="item.lrY"
+              width="20"
+              [attr.height]="item.lrH"
+              rx="4"
+              fill="var(--text-faint)"
+              opacity="0.45" />
+            <rect
+              [attr.x]="item.centerX + 2"
+              [attr.y]="item.xgbY"
+              width="20"
+              [attr.height]="item.xgbH"
+              rx="4"
+              fill="var(--safe)" />
+            <text
+              [attr.x]="item.centerX + 12"
+              [attr.y]="item.xgbY - 6"
+              text-anchor="middle"
+              font-size="10"
+              font-weight="700"
+              font-family="var(--font-mono)"
+              fill="var(--text)">
+              {{ item.xgbF1.toFixed(2) }}
+            </text>
+            <text
+              [attr.x]="item.centerX"
+              y="205"
+              text-anchor="middle"
+              font-size="11"
+              font-weight="600"
+              fill="var(--text)">
+              {{ item.label }}
+            </text>
+          }
+        </svg>
+
+        <div class="chart-legend">
+          <span><span class="legend-dot" style="background: var(--text-faint); opacity: 0.5;"></span>Logistic Regression</span>
+          <span><span class="legend-dot" style="background: var(--safe);"></span>XGBoost + PP-PSFE</span>
+        </div>
+      }
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span><strong>Hamdan Ali</strong> · Roll No. 233120 (Section F-23-BSSE-B) · Air University, Islamabad</span>
+    <span>Edge-IIoTset (IEEE Access, 2022) · 152,386 deduplicated flows · Flask + Angular 22</span>
+  </footer>
+</main>
+
+<!-- 62-Feature Editor Modal -->
+@if (editorModalOpen) {
+  <div class="modal-backdrop" (click)="editorModalOpen = false" role="dialog" aria-modal="true" aria-labelledby="editor-title">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <strong id="editor-title">Customize 62 Packet Features</strong>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <input
+            type="search"
+            class="field-input"
+            style="width: 190px;"
+            name="featureSearch"
+            placeholder="Search feature…"
+            [(ngModel)]="searchQuery" />
+          <button type="button" class="btn-ghost" (click)="editorModalOpen = false">Close</button>
+        </div>
+      </div>
+
+      <form class="modal-body" (ngSubmit)="submit(); editorModalOpen = false">
+        <div class="seg-tabs" style="flex-wrap: wrap;">
+          @for (grp of featureGroups; track grp.id) {
+            <button
+              type="button"
+              class="seg-tab"
+              [class.is-active]="selectedGroup === grp.id"
+              (click)="selectedGroup = grp.id">
+              {{ grp.label }} ({{ groupCount(grp.id) }})
             </button>
-          </div>
+          }
         </div>
 
         <div class="feature-grid">
           @for (field of filteredFields; track field.name) {
-            <div class="field-box" [class.is-edited]="isFieldModified(field.name)" [title]="fieldMeta(field.name).hint">
+            <div class="field-box" [title]="fieldMeta(field.name).hint">
               <div>
-                <div class="field-title">{{ fieldMeta(field.name).displayLabel }}</div>
-                <div class="field-key">{{ field.name }}</div>
+                <div style="font-size: 0.78rem; font-weight: 700;">{{ fieldMeta(field.name).displayLabel }}</div>
+                <div class="mono" style="font-size: 0.68rem; color: var(--text-faint);">{{ field.name }}</div>
               </div>
 
               @if (field.kind === 'category') {
-                <select
-                  class="field-input"
-                  [name]="field.name"
-                  [(ngModel)]="values[field.name]"
-                  [required]="field.required">
+                <select class="field-input" [name]="field.name" [(ngModel)]="values[field.name]">
                   <option [ngValue]="null">Select…</option>
                   @for (opt of field.options ?? []; track opt) {
                     <option [ngValue]="opt">{{ opt }}</option>
@@ -322,183 +503,42 @@
                 </select>
               } @else if (fieldMeta(field.name).isBinary) {
                 <div class="binary-pair">
-                  <button
-                    type="button"
-                    class="binary-btn"
-                    [class.is-active]="values[field.name] === 0"
-                    (click)="setBinaryValue(field.name, 0)">
-                    0 · Off
-                  </button>
-                  <button
-                    type="button"
-                    class="binary-btn"
-                    [class.is-active]="values[field.name] === 1"
-                    (click)="setBinaryValue(field.name, 1)">
-                    1 · On
-                  </button>
+                  <button type="button" class="binary-btn" [class.is-active]="values[field.name] === 0" (click)="setBinaryValue(field.name, 0)">0</button>
+                  <button type="button" class="binary-btn" [class.is-active]="values[field.name] === 1" (click)="setBinaryValue(field.name, 1)">1</button>
                 </div>
               } @else {
-                <input
-                  type="number"
-                  step="any"
-                  class="field-input"
-                  [name]="field.name"
-                  [(ngModel)]="values[field.name]"
-                  [required]="field.required" />
+                <input type="number" step="any" class="field-input" [name]="field.name" [(ngModel)]="values[field.name]" />
               }
             </div>
           }
         </div>
+
+        <div style="margin-top: 1rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="submit" class="btn-primary" [disabled]="loading">Run Classification</button>
+        </div>
       </form>
-    }
-  </section>
-
-  <!-- ===================================================================
-       3. VISUAL PROOF: ABLATION & 4-MODEL BENCHMARK
-       =================================================================== -->
-  <section class="section" aria-label="Research Evidence and Benchmarks">
-    <div class="section-head">
-      <span class="section-kicker">Experimental Proof</span>
-      <h2 class="section-title">How PP-PSFE &amp; XGBoost Compare</h2>
-      <p class="section-desc">Evaluated on 152,386 deduplicated Edge-IIoTset flows (30,478 held-out test flows across 15 attack &amp; benign classes).</p>
     </div>
+  </div>
+}
 
-    <div class="charts-grid">
-      <!-- Left: Feature Ablation Chart -->
-      <div class="card">
-        <div class="card-head">
-          <div>
-            <h3>Feature Ablation Proof</h3>
-            <p>Isolating the 24 PP-PSFE features vs. core-only &amp; temporal drift.</p>
-          </div>
-
-          <div class="pill-tabs">
-            <button
-              type="button"
-              class="pill-tab"
-              [class.is-active]="ablationSplit === 'random'"
-              (click)="ablationSplit = 'random'">
-              Random Split
-            </button>
-            <button
-              type="button"
-              class="pill-tab"
-              [class.is-active]="ablationSplit === 'temporal'"
-              (click)="ablationSplit = 'temporal'">
-              Time-Ordered
-            </button>
-          </div>
-        </div>
-
-        <div class="bar-list">
-          @for (row of activeAblationRows; track row.label) {
-            <div>
-              <div class="bar-meta">
-                <span><strong>{{ row.label }}</strong> ({{ row.features }}F)</span>
-                <span class="mono"><strong>{{ row.accuracy }}</strong> · F1 {{ row.macroF1 }}</span>
-              </div>
-              <div class="bar-track">
-                <div
-                  class="bar-fill"
-                  [class.is-best]="row.status === 'best'"
-                  [class.is-drop]="row.status === 'drop'"
-                  [style.width.%]="row.accuracyNum">
-                </div>
-              </div>
-              <p class="bar-sub">{{ row.note }}</p>
-            </div>
-          }
-        </div>
-      </div>
-
-      <!-- Right: 4-Model Benchmark Chart -->
-      <div class="card">
-        <div class="card-head">
-          <div>
-            <h3>Four-Model Comparison</h3>
-            <p>Same leakage-sanitized 62 features, train-only fitted scalers.</p>
-          </div>
-
-          <div class="pill-tabs">
-            <button
-              type="button"
-              class="pill-tab"
-              [class.is-active]="benchmarkMetric === 'accuracy'"
-              (click)="benchmarkMetric = 'accuracy'">
-              Accuracy
-            </button>
-            <button
-              type="button"
-              class="pill-tab"
-              [class.is-active]="benchmarkMetric === 'macroF1'"
-              (click)="benchmarkMetric = 'macroF1'">
-              Macro F1
-            </button>
-            <button
-              type="button"
-              class="pill-tab"
-              [class.is-active]="benchmarkMetric === 'latency'"
-              (click)="benchmarkMetric = 'latency'">
-              Speed
-            </button>
-          </div>
-        </div>
-
-        <div class="bar-list">
-          @for (m of benchmarks; track m.name) {
-            <div>
-              <div class="bar-meta">
-                <span><strong>{{ m.name }}</strong></span>
-                <span class="mono"><strong>{{ benchmarkValue(m) }}</strong></span>
-              </div>
-              <div class="bar-track">
-                <div
-                  class="bar-fill"
-                  [class.is-best]="m.best"
-                  [style.width.%]="benchmarkBarPct(m)">
-                </div>
-              </div>
-              <p class="bar-sub">{{ m.role }} · Gap {{ m.gap }}</p>
-            </div>
-          }
-        </div>
-
-        <p class="insight-note">
-          <strong>HTTP Breakthrough:</strong> On the 5 hardest HTTP attacks (<em>Password</em>, <em>SQL_injection</em>, <em>DDoS_HTTP</em>, <em>Uploading</em>, <em>XSS</em>), Logistic Regression scores 0.44–0.66 F1 while XGBoost + PP-PSFE reaches 0.86–0.93 F1.
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===================================================================
-       4. PROVENANCE FOOTER
-       =================================================================== -->
-  <footer class="footer">
-    <span><strong>Author:</strong> Hamdan Ali (Roll No. 233120, Section F-23-BSSE-B, Air University, Islamabad)</span>
-    <span><strong>Dataset &amp; Stack:</strong> Edge-IIoTset (IEEE Access, 2022) · XGBoost · Flask · Angular 22</span>
-  </footer>
-</main>
-
-<!-- Raw JSON Modal -->
+<!-- JSON Modal -->
 @if (jsonModalOpen) {
-  <div class="modal-backdrop" (click)="closeJsonModal()" role="dialog" aria-modal="true" aria-labelledby="json-title">
-    <div class="modal-card" (click)="$event.stopPropagation()">
+  <div class="modal-backdrop" (click)="jsonModalOpen = false" role="dialog" aria-modal="true" aria-labelledby="json-title">
+    <div class="modal-card" style="max-width: 640px;" (click)="$event.stopPropagation()">
       <div class="modal-head">
         <strong id="json-title">62-Feature JSON Payload</strong>
-        <button type="button" class="btn-outline" (click)="closeJsonModal()">Close</button>
+        <button type="button" class="btn-ghost" (click)="jsonModalOpen = false">Close</button>
       </div>
       <div class="modal-body">
         @if (jsonError) {
-          <div class="error-box">{{ jsonError }}</div>
+          <div class="error-box" style="margin-bottom: 0.75rem;">{{ jsonError }}</div>
         }
         <textarea class="json-area" [(ngModel)]="jsonDraft" spellcheck="false" aria-label="62-feature JSON payload"></textarea>
       </div>
       <div class="modal-foot">
-        <button type="button" class="btn-outline" (click)="copyJson()">
-          {{ jsonCopied ? 'Copied!' : 'Copy JSON' }}
-        </button>
+        <button type="button" class="btn-ghost" (click)="copyJson()">{{ jsonCopied ? 'Copied!' : 'Copy' }}</button>
         <div style="display: flex; gap: 0.5rem;">
-          <button type="button" class="btn-outline" (click)="applyJsonPayload(false)">Apply</button>
+          <button type="button" class="btn-ghost" (click)="applyJsonPayload(false)">Apply</button>
           <button type="button" class="btn-primary" (click)="applyJsonPayload(true)">Apply &amp; Classify</button>
         </div>
       </div>

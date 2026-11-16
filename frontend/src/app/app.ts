@@ -16,27 +16,26 @@ export interface ClassProbBar {
   percent: string;
 }
 
-export interface ModelBenchmark {
-  name: string;
-  role: string;
-  accuracyNum: number;
-  accuracy: string;
-  macroF1Num: number;
-  macroF1: string;
-  latencyNum: number;
-  latency: string;
-  gap: string;
-  best?: boolean;
+export interface AblationBar {
+  shortLabel: string;
+  subLabel: string;
+  accuracy: number;
+  barX: number;
+  centerX: number;
+  barY: number;
+  barHeight: number;
+  tone: 'best' | 'normal' | 'warn';
 }
 
-export interface AblationRow {
+export interface HttpRecoveryPair {
   label: string;
-  features: number;
-  accuracyNum: number;
-  accuracy: string;
-  macroF1: string;
-  note: string;
-  status?: 'best' | 'drop';
+  centerX: number;
+  lrF1: number;
+  xgbF1: number;
+  lrY: number;
+  lrH: number;
+  xgbY: number;
+  xgbH: number;
 }
 
 const STATIC_PRESET_RESULTS: Record<string, PredictionResponse> = {
@@ -50,7 +49,7 @@ const STATIC_PRESET_RESULTS: Record<string, PredictionResponse> = {
       Backdoor: 0.000001, DDoS_TCP: 0.000001, Password: 0.000001, Ransomware: 0.000001, Uploading: 0.000001, XSS: 0.000001,
       DDoS_ICMP: 0, DDoS_UDP: 0, Fingerprinting: 0, MITM: 0, Port_Scanning: 0, SQL_injection: 0
     },
-    disclaimer: 'Research prototype on Edge-IIoTset (Static Replay Mode).'
+    disclaimer: 'Static replay mode.'
   },
   DDoS_TCP: {
     prediction: 'DDoS_TCP',
@@ -62,7 +61,7 @@ const STATIC_PRESET_RESULTS: Record<string, PredictionResponse> = {
       Normal: 0.000001, Uploading: 0.000001, Vulnerability_scanner: 0.000001,
       Backdoor: 0, DDoS_ICMP: 0, DDoS_UDP: 0, Fingerprinting: 0, MITM: 0, Port_Scanning: 0, Ransomware: 0
     },
-    disclaimer: 'Research prototype on Edge-IIoTset (Static Replay Mode).'
+    disclaimer: 'Static replay mode.'
   },
   SQL_injection: {
     prediction: 'SQL_injection',
@@ -74,7 +73,7 @@ const STATIC_PRESET_RESULTS: Record<string, PredictionResponse> = {
       Vulnerability_scanner: 0.000028, Normal: 0.00001, DDoS_UDP: 0.000007, Backdoor: 0.000006, DDoS_ICMP: 0.000006,
       DDoS_TCP: 0.000006, Ransomware: 0.000006, Port_Scanning: 0.000005, MITM: 0.000003, Fingerprinting: 0.000002
     },
-    disclaimer: 'Research prototype on Edge-IIoTset (Static Replay Mode).'
+    disclaimer: 'Static replay mode.'
   },
   Ransomware: {
     prediction: 'Ransomware',
@@ -86,51 +85,39 @@ const STATIC_PRESET_RESULTS: Record<string, PredictionResponse> = {
       Normal: 0.000003, SQL_injection: 0.000003, XSS: 0.000003, Password: 0.000001,
       DDoS_ICMP: 0, DDoS_TCP: 0, DDoS_UDP: 0, Fingerprinting: 0, MITM: 0, Port_Scanning: 0
     },
-    disclaimer: 'Research prototype on Edge-IIoTset (Static Replay Mode).'
+    disclaimer: 'Static replay mode.'
   }
 };
 
-const PRESET_CARDS: Record<string, { title: string; subtitle: string; tag: string }> = {
-  Normal: {
-    title: 'Normal Sensor Telemetry',
-    subtitle: 'Routine MQTT broker disconnect flow',
-    tag: 'MQTT :1883',
-  },
-  DDoS_TCP: {
-    title: 'DDoS TCP Flood',
-    subtitle: 'Empty-payload RST/ACK volumetric burst',
-    tag: 'TCP :80',
-  },
-  SQL_injection: {
-    title: 'SQL Injection Probe',
-    subtitle: 'HTTP GET query with SQL syntax markers',
-    tag: 'HTTP :80',
-  },
-  Ransomware: {
-    title: 'Ransomware C2 Traffic',
-    subtitle: 'High-entropy encrypted payload on C2 port',
-    tag: 'Port :4321',
-  },
+const PRESET_LABELS: Record<string, { title: string; tag: string }> = {
+  Normal: { title: 'Normal Telemetry', tag: 'MQTT :1883' },
+  DDoS_TCP: { title: 'DDoS TCP Flood', tag: 'TCP :80' },
+  SQL_injection: { title: 'SQL Injection', tag: 'HTTP :80' },
+  Ransomware: { title: 'Ransomware C2', tag: 'Port :4321' },
 };
 
-const CLASS_EXPLANATIONS: Record<string, { summary: string; action: string }> = {
-  Normal: {
-    summary: 'Standard MQTT sensor traffic on port 1883 with normal TCP flags and no malicious signatures.',
-    action: 'Allow flow normally.',
-  },
-  DDoS_TCP: {
-    summary: 'Volumetric TCP control traffic targeting port 80 with RST flags and zero application payload.',
-    action: 'Rate-limit source subnet and enable SYN cookies.',
-  },
-  SQL_injection: {
-    summary: 'HTTP request carrying SQL injection query patterns (psfe_app_sqli_flag=1) and elevated URI length.',
-    action: 'Block HTTP request at the WAF and audit endpoint queries.',
-  },
-  Ransomware: {
-    summary: 'Encrypted outbound command-and-control traffic on port 4321 with high payload entropy.',
-    action: 'Quarantine the IIoT host and block the destination port.',
-  },
+const SHORT_CAPTIONS: Record<string, string> = {
+  Normal: 'Clean MQTT broker session on port 1883 with zero threat markers.',
+  DDoS_TCP: 'High-rate TCP RST/ACK burst on port 80 with empty payload.',
+  SQL_injection: 'HTTP query carrying SQL syntax markers (psfe_app_sqli_flag=1).',
+  Ransomware: 'High-entropy encrypted TCP flow targeting C2 port 4321.',
 };
+
+function buildAblationBars(
+  items: { shortLabel: string; subLabel: string; accuracy: number; tone: 'best' | 'normal' | 'warn' }[]
+): AblationBar[] {
+  const centers = [98, 203, 308, 413];
+  return items.map((item, idx) => {
+    const h = Math.max(4, ((item.accuracy - 55) / 45) * 162);
+    return {
+      ...item,
+      centerX: centers[idx],
+      barX: centers[idx] - 27,
+      barHeight: h,
+      barY: 186 - h,
+    };
+  });
+}
 
 @Component({
   selector: 'app-root',
@@ -148,127 +135,48 @@ export class App implements OnInit {
     typeof window !== 'undefined' &&
     !['localhost', '127.0.0.1', ''].includes(window.location.hostname);
 
-  readonly benchmarks: ModelBenchmark[] = [
-    {
-      name: 'XGBoost + PP-PSFE',
-      role: 'Selected model · lowest error + 5x faster than LightGBM',
-      accuracyNum: 96.49,
-      accuracy: '96.49%',
-      macroF1Num: 0.9618,
-      macroF1: '0.9618',
-      latencyNum: 3.54,
-      latency: '3.54 ms',
-      gap: '+0.0057',
-      best: true,
-    },
-    {
-      name: 'LightGBM',
-      role: 'Leaf-wise gradient boosting',
-      accuracyNum: 96.33,
-      accuracy: '96.33%',
-      macroF1Num: 0.9596,
-      macroF1: '0.9596',
-      latencyNum: 18.35,
-      latency: '18.35 ms',
-      gap: '+0.0210',
-    },
-    {
-      name: 'Random Forest',
-      role: 'Balanced bagging ensemble (150 trees)',
-      accuracyNum: 94.38,
-      accuracy: '94.38%',
-      macroF1Num: 0.9414,
-      macroF1: '0.9414',
-      latencyNum: 10.35,
-      latency: '10.35 ms',
-      gap: '+0.0020',
-    },
-    {
-      name: 'Logistic Regression',
-      role: 'Linear baseline (struggles on HTTP attacks)',
-      accuracyNum: 84.87,
-      accuracy: '84.87%',
-      macroF1Num: 0.8419,
-      macroF1: '0.8419',
-      latencyNum: 0.43,
-      latency: '0.43 ms',
-      gap: '+0.0016',
-    },
+  readonly ringCircumference = 251.33;
+
+  readonly randomBars = buildAblationBars([
+    { shortLabel: 'Core (38)', subLabel: 'F1 0.89', accuracy: 88.97, tone: 'normal' },
+    { shortLabel: 'No PortGrp (53)', subLabel: 'F1 0.90', accuracy: 90.95, tone: 'normal' },
+    { shortLabel: 'Role Only (59)', subLabel: 'F1 0.92', accuracy: 92.64, tone: 'normal' },
+    { shortLabel: 'PP-PSFE (62)', subLabel: 'F1 0.96', accuracy: 96.57, tone: 'best' },
+  ]);
+
+  readonly temporalBars = buildAblationBars([
+    { shortLabel: 'No Seq (58)', subLabel: 'F1 0.60', accuracy: 66.39, tone: 'warn' },
+    { shortLabel: 'Raw Ports (62)', subLabel: 'F1 0.76', accuracy: 79.40, tone: 'warn' },
+    { shortLabel: 'Core (38)', subLabel: 'F1 0.88', accuracy: 87.93, tone: 'normal' },
+    { shortLabel: 'Role Only (59)', subLabel: 'F1 0.92', accuracy: 91.70, tone: 'best' },
+  ]);
+
+  readonly paretoPoints = [
+    { name: 'XGBoost', acc: '96.49%', ms: '3.54 ms', cx: 126.8, cy: 41.1, lx: 138, ly: 39, best: true },
+    { name: 'LightGBM', acc: '96.33%', ms: '18.35 ms', cx: 423.0, cy: 42.7, lx: 356, ly: 32, best: false },
+    { name: 'Random Forest', acc: '94.38%', ms: '10.35 ms', cx: 263.0, cy: 62.2, lx: 274, ly: 66, best: false },
+    { name: 'Logistic Reg', acc: '84.87%', ms: '0.43 ms', cx: 64.6, cy: 157.3, lx: 76, ly: 161, best: false },
   ];
 
-  readonly randomAblation: AblationRow[] = [
-    {
-      label: 'Core + PP-PSFE (Proposed)',
-      features: 62,
-      accuracyNum: 96.57,
-      accuracy: '96.57%',
-      macroF1: '0.9621',
-      note: '+7.60% recovery over cleaned core features alone',
-      status: 'best',
-    },
-    {
-      label: 'PP-PSFE minus raw ports',
-      features: 59,
-      accuracyNum: 92.64,
-      accuracy: '92.64%',
-      macroF1: '0.9237',
-      note: 'Drops raw continuous port coordinates, keeps role flags',
-    },
-    {
-      label: 'PP-PSFE minus all port group',
-      features: 53,
-      accuracyNum: 90.95,
-      accuracy: '90.95%',
-      macroF1: '0.9023',
-      note: 'Removes all 9 Group A port-role features',
-    },
-    {
-      label: 'Sanitized Core Only',
-      features: 38,
-      accuracyNum: 88.97,
-      accuracy: '88.97%',
-      macroF1: '0.8900',
-      note: 'After deleting lab IPs, timestamps, URIs & payloads',
-    },
-  ];
-
-  readonly temporalAblation: AblationRow[] = [
-    {
-      label: 'PP-PSFE minus raw ports',
-      features: 59,
-      accuracyNum: 91.70,
-      accuracy: '91.70%',
-      macroF1: '0.9151',
-      note: 'Best temporal stability (+3.77% over core baseline)',
-      status: 'best',
-    },
-    {
-      label: 'Sanitized Core Only',
-      features: 38,
-      accuracyNum: 87.93,
-      accuracy: '87.93%',
-      macroF1: '0.8813',
-      note: 'Baseline without engineered features',
-    },
-    {
-      label: 'Core + Full PP-PSFE (with raw ports)',
-      features: 62,
-      accuracyNum: 79.40,
-      accuracy: '79.40%',
-      macroF1: '0.7638',
-      note: 'Exposes chronological ephemeral-port drift across sessions',
-      status: 'drop',
-    },
-    {
-      label: 'Minus sequence/stream counters',
-      features: 58,
-      accuracyNum: 66.39,
-      accuracy: '66.39%',
-      macroF1: '0.6037',
-      note: 'Exposes capture-order counter reliance (tcp.seq, udp.stream)',
-      status: 'drop',
-    },
-  ];
+  readonly httpRecovery: HttpRecoveryPair[] = [
+    { label: 'Password', lrF1: 0.4371, xgbF1: 0.8875 },
+    { label: 'SQLi', lrF1: 0.5746, xgbF1: 0.9010 },
+    { label: 'DDoS_HTTP', lrF1: 0.6067, xgbF1: 0.8562 },
+    { label: 'Upload', lrF1: 0.6354, xgbF1: 0.9294 },
+    { label: 'XSS', lrF1: 0.6585, xgbF1: 0.9285 },
+  ].map((item, idx) => {
+    const centers = [90, 174, 258, 342, 426];
+    const lrH = item.lrF1 * 160;
+    const xgbH = item.xgbF1 * 160;
+    return {
+      ...item,
+      centerX: centers[idx],
+      lrH,
+      lrY: 186 - lrH,
+      xgbH,
+      xgbY: 186 - xgbH,
+    };
+  });
 
   theme: 'light' | 'dark' = 'light';
   apiState: 'checking' | 'online' | 'offline' | 'static' = 'checking';
@@ -276,11 +184,6 @@ export class App implements OnInit {
 
   activePreset = 'Normal';
   values: Record<string, string | number | null> = {};
-  baselineValues: Record<string, string | number | null> = {};
-
-  showEditor = false;
-  selectedGroup: 'all' | FeatureGroup = 'psfe';
-  searchQuery = '';
 
   loading = false;
   error = '';
@@ -289,8 +192,12 @@ export class App implements OnInit {
   allProbabilities: ClassProbBar[] = [];
   showAllClasses = false;
 
-  benchmarkMetric: 'accuracy' | 'macroF1' | 'latency' = 'accuracy';
   ablationSplit: 'random' | 'temporal' = 'random';
+  chartMode: 'pareto' | 'httpF1' = 'pareto';
+
+  editorModalOpen = false;
+  selectedGroup: 'all' | FeatureGroup = 'psfe';
+  searchQuery = '';
 
   jsonModalOpen = false;
   jsonDraft = '';
@@ -356,8 +263,8 @@ export class App implements OnInit {
     });
   }
 
-  presetCard(name: string) {
-    return PRESET_CARDS[name] ?? { title: name, subtitle: 'Held-out packet sample', tag: 'Flow' };
+  presetLabel(name: string) {
+    return PRESET_LABELS[name] ?? { title: name, tag: 'Flow' };
   }
 
   fieldMeta(name: string): FeatureMeta {
@@ -373,20 +280,6 @@ export class App implements OnInit {
   groupCount(groupId: 'all' | FeatureGroup): number {
     if (groupId === 'all') return this.fields.length;
     return this.fields.filter(f => this.fieldMeta(f.name).group === groupId).length;
-  }
-
-  isFieldModified(name: string): boolean {
-    if (!this.activePreset) return false;
-    return String(this.values[name] ?? '') !== String(this.baselineValues[name] ?? '');
-  }
-
-  get modifiedCount(): number {
-    if (!this.activePreset) return 0;
-    let count = 0;
-    for (const f of this.fields) {
-      if (this.isFieldModified(f.name)) count++;
-    }
-    return count;
   }
 
   get filteredFields(): Feature[] {
@@ -410,9 +303,7 @@ export class App implements OnInit {
     const preset = this.presets[name];
     if (!preset) return;
     for (const field of this.fields) {
-      const val = preset[field.name] ?? null;
-      this.values[field.name] = val;
-      this.baselineValues[field.name] = val;
+      this.values[field.name] = preset[field.name] ?? null;
     }
     if (runNow) {
       this.submit();
@@ -429,66 +320,62 @@ export class App implements OnInit {
     return String(this.result?.prediction) === 'Normal';
   }
 
+  get confidenceFraction(): number {
+    if (!this.result?.probabilities?.length) return 0;
+    return Math.max(0, Math.min(1, Math.max(...this.result.probabilities)));
+  }
+
   get confidencePercent(): string {
-    if (!this.result?.probabilities?.length) return 'N/A';
-    return (Math.max(...this.result.probabilities) * 100).toFixed(2) + '%';
+    if (!this.result?.probabilities?.length) return '—';
+    return (this.confidenceFraction * 100).toFixed(2) + '%';
+  }
+
+  get ringDashOffset(): number {
+    return this.ringCircumference * (1 - this.confidenceFraction);
   }
 
   get visibleProbabilities(): ClassProbBar[] {
-    return this.showAllClasses ? this.allProbabilities : this.allProbabilities.slice(0, 5);
+    return this.showAllClasses ? this.allProbabilities : this.allProbabilities.slice(0, 4);
   }
 
-  get explanation() {
+  get shortCaption(): string {
     const label = String(this.result?.prediction || '');
     return (
-      CLASS_EXPLANATIONS[label] ?? {
-        summary: `Predicted as ${label} across the 15 Edge-IIoTset traffic categories.`,
-        action: label === 'Normal' ? 'Allow flow.' : 'Trigger alert and inspect endpoint.',
-      }
+      SHORT_CAPTIONS[label] ??
+      `Classified across 15 Edge-IIoTset traffic classes.`
     );
   }
 
-  get packetSnapshot() {
+  get packetVisual() {
     const num = (k: string) => Number(this.values[k] ?? 0) || 0;
     const servicePort = num('psfe_service_port');
     const ephPort = num('psfe_ephemeral_port');
     const dir = num('psfe_pkt_direction');
     const entropy = Math.max(0, Math.min(4, num('psfe_tcp_pay_entropy')));
     const bytes = num('psfe_tcp_pay_bytelen');
-
-    const signals: { label: string; alert: boolean }[] = [];
-    if (num('psfe_is_mqtt_service') === 1) signals.push({ label: 'MQTT Broker', alert: false });
-    if (num('psfe_is_http_service') === 1) signals.push({ label: 'HTTP Service', alert: false });
-    if (num('tcp.connection.rst') === 1) signals.push({ label: 'TCP RST', alert: true });
-    if (num('psfe_is_iot_c2_service') === 1) signals.push({ label: 'IoT C2 Port', alert: true });
-    if (num('psfe_app_sqli_flag') === 1) signals.push({ label: 'SQLi Marker', alert: true });
-    if (num('psfe_app_xss_flag') === 1) signals.push({ label: 'XSS Marker', alert: true });
-    if (num('psfe_app_upload_flag') === 1) signals.push({ label: 'Upload Marker', alert: true });
-    if (num('psfe_app_auth_flag') === 1) signals.push({ label: 'Auth Marker', alert: true });
+    const proto =
+      num('psfe_is_mqtt_service') === 1
+        ? 'MQTT'
+        : num('psfe_is_http_service') === 1
+          ? 'HTTP'
+          : num('psfe_is_iot_c2_service') === 1
+            ? 'C2'
+            : 'TCP';
 
     return {
-      flowText: dir >= 0 ? `:${ephPort} → :${servicePort}` : `:${servicePort} → :${ephPort}`,
+      leftPort: dir >= 0 ? `:${ephPort}` : `:${servicePort}`,
+      rightPort: dir >= 0 ? `:${servicePort}` : `:${ephPort}`,
+      leftRole: dir >= 0 ? 'Client' : 'Service',
+      rightRole: dir >= 0 ? 'Service' : 'Client',
+      proto,
       bytes,
       entropy,
       entropyPct: (entropy / 4) * 100,
-      signals: signals.length ? signals : [{ label: 'Standard Headers', alert: false }],
     };
   }
 
-  get activeAblationRows(): AblationRow[] {
-    return this.ablationSplit === 'random' ? this.randomAblation : this.temporalAblation;
-  }
-
-  benchmarkBarPct(m: ModelBenchmark): number {
-    if (this.benchmarkMetric === 'accuracy') return m.accuracyNum;
-    if (this.benchmarkMetric === 'macroF1') return m.macroF1Num * 100;
-    return Math.min(100, (m.latencyNum / 20) * 100);
-  }
-
-  benchmarkValue(m: ModelBenchmark): string {
-    if (this.benchmarkMetric === 'accuracy') return m.accuracy;
-    if (this.benchmarkMetric === 'macroF1') return m.macroF1;
-    return m.latency + ' / 1k';
+  get activeAblationBars(): AblationBar[] {
+    return this.ablationSplit === 'random' ? this.randomBars : this.temporalBars;
   }
 
   submit() {
@@ -497,18 +384,18 @@ export class App implements OnInit {
     for (const field of this.fields) {
       const value = this.values[field.name];
       if (value === null || value === '') {
-        this.error = `Enter a value for ${this.fieldMeta(field.name).displayLabel} (${field.name}).`;
+        this.error = `Enter a value for ${field.name}.`;
         this.cdr.markForCheck();
         return;
       }
       if (field.kind === 'number') {
-        const numeric = Number(value);
-        if (!Number.isFinite(numeric)) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) {
           this.error = `Invalid number for ${field.name}.`;
           this.cdr.markForCheck();
           return;
         }
-        payload[field.name] = numeric;
+        payload[field.name] = n;
       } else {
         payload[field.name] = String(value);
       }
@@ -564,7 +451,6 @@ export class App implements OnInit {
       .sort((a, b) => b.prob - a.prob);
   }
 
-  /* JSON Modal */
   openJsonModal() {
     const out: Record<string, string | number | null> = {};
     for (const f of this.fields) {
@@ -574,10 +460,6 @@ export class App implements OnInit {
     this.jsonError = '';
     this.jsonCopied = false;
     this.jsonModalOpen = true;
-  }
-
-  closeJsonModal() {
-    this.jsonModalOpen = false;
   }
 
   async copyJson() {
@@ -628,7 +510,6 @@ export class App implements OnInit {
       } else {
         this.values[f.name] = String(raw);
       }
-      this.baselineValues[f.name] = this.values[f.name];
     }
     this.jsonModalOpen = false;
     if (runNow) {

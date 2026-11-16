@@ -101,7 +101,7 @@ describe('App', () => {
       await appRef.whenStable();
       expect(errors.length).toBe(0);
       expect(root.querySelector('h1')?.textContent).toContain('Edge-IIoTset');
-      expect(root.querySelectorAll('.preset-tile').length).toBe(4);
+      expect(root.querySelectorAll('.sample-btn').length).toBe(4);
       expect(root.querySelectorAll('.svg-chart').length).toBe(2);
       appRef.destroy();
     } finally {

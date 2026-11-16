@@ -1,19 +1,14 @@
 <header class="header">
   <div class="header-inner">
     <div class="brand">
-      <div class="brand-icon" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3l8 3.5v5.5c0 5.1-3.4 9.5-8 11-4.6-1.5-8-5.9-8-11V6.5L12 3z"/>
-          <path d="M7.5 12h2.2l1.6-3 2.1 6 1.6-3h2.5"/>
-        </svg>
-      </div>
-      <h1 class="brand-title">Edge-IIoTset · PP-PSFE Intrusion Detector</h1>
+      <h1 class="brand-title">Edge-IIoTset Intrusion Detection</h1>
+      <span class="brand-sub">62-feature PP-PSFE and XGBoost pipeline (15 traffic classes)</span>
     </div>
 
     <div class="header-actions">
       <button
         type="button"
-        class="status-pill"
+        class="status-btn"
         [class.is-online]="apiState === 'online'"
         [class.is-offline]="apiState === 'offline'"
         [class.is-static]="apiState === 'static'"
@@ -24,23 +19,23 @@
         } @else if (apiState === 'offline') {
           <span>API Offline</span>
         } @else if (apiState === 'static') {
-          <span>Static Demo</span>
+          <span>Static Mode</span>
         } @else {
-          <span>Connecting…</span>
+          <span>Checking API</span>
         }
       </button>
 
-      <button type="button" class="btn-ghost" (click)="toggleTheme()">
-        {{ theme === 'light' ? 'Dark' : 'Light' }}
+      <button type="button" class="btn" (click)="toggleTheme()">
+        {{ theme === 'light' ? 'Dark theme' : 'Light theme' }}
       </button>
 
       <a
-        class="btn-ghost"
+        class="btn"
         href="Hamdan_Ali_PP-PSFE_IEEE_Paper.pdf"
         download="Hamdan_Ali_PP-PSFE_IEEE_Paper.pdf"
         target="_blank"
         rel="noopener">
-        Paper PDF
+        Research Paper (PDF)
       </a>
     </div>
   </div>
@@ -49,87 +44,67 @@
 <main class="container">
   @if (deployedStatic) {
     <div class="notice-bar" role="status">
-      Static GitHub Pages demo — live Flask inference runs locally on <code class="mono">127.0.0.1:5050</code>.
+      GitHub Pages serves the static front end. Live Flask predictions run locally on <code class="mono">127.0.0.1:5050</code>.
     </div>
   }
 
-  <!-- ===================================================================
-       1. VISUAL PIPELINE FLOW (Shows the Entire Work in 4 Boxes)
-       =================================================================== -->
-  <section class="card" aria-label="Research Pipeline">
-    <div class="flow-banner-head">
-      <div>
-        <h2>How PP-PSFE Fixes Dataset Leakage</h2>
-        <p>Removes export leaks &amp; lab IPs, extracts 24 structural signals, and classifies 15 attack classes in 3.54 ms.</p>
-      </div>
-    </div>
+  <!-- 1. Overview Strip -->
+  <section class="panel" aria-label="Dataset Sanitization and Pipeline">
+    <h2 class="section-title">Dataset Sanitization and PP-PSFE Pipeline</h2>
+    <p class="section-sub">
+      Removes export placeholder leaks (<code class="mono">"0"</code> vs <code class="mono">"0.0"</code>) and lab identifiers, then summarizes packet structure into 24 scalar features before dropping raw strings.
+    </p>
 
-    <div class="pipeline-visual">
-      <div class="stage-box">
-        <span class="stage-val">157,800</span>
-        <span class="stage-lbl">Raw Edge-IIoTset Flows</span>
+    <div class="pipeline-row">
+      <div class="pipeline-cell">
+        <span class="pipeline-num">157,800 rows</span>
+        <span class="pipeline-label">Raw Edge-IIoTset dataset (63 columns)</span>
       </div>
-
-      <div class="stage-arrow" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      <div class="pipeline-cell is-muted">
+        <span class="pipeline-num">38 core (88.97%)</span>
+        <span class="pipeline-label">Accuracy after removing leaks and lab IDs</span>
       </div>
-
-      <div class="stage-box is-drop">
-        <span class="stage-val">88.97%</span>
-        <span class="stage-lbl">38 Core Only (Leaks Removed)</span>
+      <div class="pipeline-cell">
+        <span class="pipeline-num">+24 PP-PSFE (62 total)</span>
+        <span class="pipeline-label">Port roles, TCP entropy, HTTP markers</span>
       </div>
-
-      <div class="stage-arrow" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-      </div>
-
-      <div class="stage-box">
-        <span class="stage-val">+24 PP-PSFE</span>
-        <span class="stage-lbl">62 Privacy-Safe Features</span>
-      </div>
-
-      <div class="stage-arrow" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-      </div>
-
-      <div class="stage-box is-win">
-        <span class="stage-val">96.49%</span>
-        <span class="stage-lbl">XGBoost · 0.9618 Macro-F1</span>
+      <div class="pipeline-cell is-muted">
+        <span class="pipeline-num">96.49% (3.54 ms / 1k)</span>
+        <span class="pipeline-label">XGBoost accuracy and 0.9618 macro-F1</span>
       </div>
     </div>
   </section>
 
-  <!-- ===================================================================
-       2. VISUAL LIVE PACKET DETECTOR
-       =================================================================== -->
-  <section class="classifier-grid" aria-label="Interactive Classifier">
-    <!-- Left: 4 Visual Packet Tiles -->
-    <div class="card">
-      <div class="preset-stack">
+  <!-- 2. Interactive Classifier -->
+  <section class="classifier-grid" aria-label="Packet Classifier">
+    <div class="panel">
+      <h2 class="section-title">Test Packets</h2>
+      <p class="section-sub">Select a sample flow from the held-out split.</p>
+
+      <div class="sample-list">
         @for (pName of presetNames; track pName) {
           @let p = presetLabel(pName);
           <button
             type="button"
-            class="preset-tile"
+            class="sample-btn"
             [class.is-safe]="pName === 'Normal'"
             [class.is-threat]="pName !== 'Normal'"
             [class.is-active]="activePreset === pName"
             (click)="loadPreset(pName, true)">
-            <span class="preset-name">{{ p.title }}</span>
-            <span class="preset-port">{{ p.tag }}</span>
+            <span class="sample-name">{{ p.title }}</span>
+            <span class="sample-port">{{ p.tag }}</span>
           </button>
         }
       </div>
 
-      <div class="tile-actions">
-        <button type="button" class="btn-ghost" (click)="editorModalOpen = true">Edit 62 Inputs</button>
-        <button type="button" class="btn-ghost" (click)="openJsonModal()">JSON</button>
+      <div class="sample-actions">
+        <button type="button" class="btn" (click)="editorModalOpen = true">Edit 62 inputs</button>
+        <button type="button" class="btn" (click)="openJsonModal()">JSON payload</button>
       </div>
     </div>
 
-    <!-- Right: Confidence Ring + Flow Diagram + Probability Bars -->
     <div
-      class="card verdict-stage"
+      class="panel result-panel"
       [class.is-safe]="result && isNormalPrediction"
       [class.is-threat]="result && !isNormalPrediction"
       aria-live="polite">
@@ -138,93 +113,78 @@
       }
 
       @if (loading && !result) {
-        <p style="margin: 0; color: var(--text-muted);">Classifying 62 features…</p>
+        <p style="margin: 0; color: var(--text-muted);">Running inference on 62 features...</p>
       }
 
       @if (result) {
-        <div class="verdict-top">
+        <div class="result-head">
           <div>
             <span
-              class="verdict-badge"
+              class="result-status"
               [class.is-safe]="isNormalPrediction"
               [class.is-threat]="!isNormalPrediction">
-              {{ isNormalPrediction ? 'Safe Flow' : 'Intrusion Alert' }}
+              {{ isNormalPrediction ? 'Benign traffic' : 'Attack detected' }}
             </span>
-            <h2 class="verdict-title">{{ result.prediction }}</h2>
-            <p class="verdict-caption">{{ shortCaption }}</p>
+            <h2 class="result-class">{{ result.prediction }}</h2>
+            <p class="result-desc">{{ shortCaption }}</p>
           </div>
 
-          <!-- Circular SVG Confidence Gauge -->
-          <div class="ring-wrap">
-            <svg class="ring-svg" width="96" height="96" viewBox="0 0 96 96" aria-hidden="true">
-              <circle class="ring-bg" cx="48" cy="48" r="40" />
-              <circle
-                class="ring-progress"
-                [class.is-safe]="isNormalPrediction"
-                [class.is-threat]="!isNormalPrediction"
-                cx="48"
-                cy="48"
-                r="40"
-                [attr.stroke-dasharray]="ringCircumference"
-                [attr.stroke-dashoffset]="ringDashOffset" />
-            </svg>
-            <div class="ring-center">
-              <span class="ring-pct">{{ confidencePercent }}</span>
-              <span class="ring-lbl">{{ lastLatencyMs !== null && !deployedStatic ? lastLatencyMs + ' ms' : 'Conf.' }}</span>
+          <div class="result-metrics">
+            <div class="metric-item">
+              <span class="metric-label">Confidence</span>
+              <span class="metric-val">{{ confidencePercent }}</span>
+            </div>
+            @if (lastLatencyMs !== null && !deployedStatic) {
+              <div class="metric-item">
+                <span class="metric-label">Latency</span>
+                <span class="metric-val">{{ lastLatencyMs }} ms</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="flow-strip">
+          <div>
+            <span class="flow-kv-label">Ports ({{ packetVisual.leftRole }} to {{ packetVisual.rightRole }})</span>
+            <span class="flow-kv-val">{{ packetVisual.leftPort }} -&gt; {{ packetVisual.rightPort }}</span>
+          </div>
+          <div>
+            <span class="flow-kv-label">Service</span>
+            <span class="flow-kv-val">{{ packetVisual.proto }}</span>
+          </div>
+          <div>
+            <span class="flow-kv-label">TCP Payload</span>
+            <span class="flow-kv-val">{{ packetVisual.bytes }} bytes</span>
+          </div>
+          <div>
+            <span class="flow-kv-label">Entropy ({{ packetVisual.entropy.toFixed(2) }} / 4.00)</span>
+            <div class="bar-track" style="margin-top: 0.35rem;">
+              <div class="bar-fill" [style.width.%]="packetVisual.entropyPct"></div>
             </div>
           </div>
         </div>
 
-        <!-- Visual Packet Path SVG + Entropy Gauge -->
-        <div class="packet-visual-bar">
-          <svg class="packet-svg" viewBox="0 0 320 56" role="img" [attr.aria-label]="packetVisual.leftPort + ' to ' + packetVisual.rightPort">
-            <rect x="2" y="8" width="92" height="40" rx="8" fill="var(--bg-card)" stroke="var(--border-strong)" />
-            <text x="48" y="24" text-anchor="middle" font-size="10" fill="var(--text-faint)">{{ packetVisual.leftRole }}</text>
-            <text x="48" y="39" text-anchor="middle" font-size="12" font-weight="700" font-family="var(--font-mono)" fill="var(--text)">{{ packetVisual.leftPort }}</text>
-
-            <line x1="98" y1="28" x2="216" y2="28" [attr.stroke]="isNormalPrediction ? 'var(--safe)' : 'var(--threat)'" stroke-width="2.5" stroke-dasharray="4 3" />
-            <polygon points="214,23 224,28 214,33" [attr.fill]="isNormalPrediction ? 'var(--safe)' : 'var(--threat)'" />
-            <rect x="124" y="13" width="72" height="17" rx="8" fill="var(--bg-card)" stroke="var(--border)" />
-            <text x="160" y="25" text-anchor="middle" font-size="10" font-weight="700" font-family="var(--font-mono)" fill="var(--text)">{{ packetVisual.proto }} · {{ packetVisual.bytes }}B</text>
-
-            <rect x="226" y="8" width="92" height="40" rx="8" fill="var(--bg-card)" stroke="var(--border-strong)" />
-            <text x="272" y="24" text-anchor="middle" font-size="10" fill="var(--text-faint)">{{ packetVisual.rightRole }}</text>
-            <text x="272" y="39" text-anchor="middle" font-size="12" font-weight="700" font-family="var(--font-mono)" fill="var(--text)">{{ packetVisual.rightPort }}</text>
-          </svg>
-
-          <div class="entropy-box">
-            <div class="entropy-head">
-              <span>Payload Entropy</span>
-              <span class="mono">{{ packetVisual.entropy.toFixed(2) }} / 4.00</span>
-            </div>
-            <div class="track-bar">
-              <div class="fill-bar is-entropy" [style.width.%]="packetVisual.entropyPct"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Clean Probability Bars -->
         @if (allProbabilities.length) {
           <div>
             <div class="prob-head">
-              <span>{{ showAllClasses ? 'All 15 Class Probabilities' : 'Top 4 Class Probabilities' }}</span>
+              <span>{{ showAllClasses ? 'All 15 class probabilities' : 'Top 4 class probabilities' }}</span>
               <button type="button" class="link-btn" (click)="showAllClasses = !showAllClasses">
-                {{ showAllClasses ? 'Top 4' : 'All 15 classes' }}
+                {{ showAllClasses ? 'Show top 4' : 'Show all 15' }}
               </button>
             </div>
             <div class="prob-list">
               @for (bar of visibleProbabilities; track bar.name) {
                 <div class="prob-row">
                   <span class="prob-name" [title]="bar.name">{{ bar.name }}</span>
-                  <div class="track-bar">
+                  <div class="bar-track">
                     <div
-                      class="fill-bar"
+                      class="bar-fill"
                       [class.is-safe]="bar.name === 'Normal'"
                       [class.is-threat]="bar.name !== 'Normal'"
                       [style.width.%]="bar.prob * 100">
                     </div>
                   </div>
-                  <span class="mono" style="text-align: right; font-weight: 700;">{{ bar.percent }}</span>
+                  <span class="mono" style="text-align: right; font-weight: 600;">{{ bar.percent }}</span>
                 </div>
               }
             </div>
@@ -234,46 +194,45 @@
     </div>
   </section>
 
-  <!-- ===================================================================
-       3. INTERACTIVE VISUAL SVG CHARTS
-       =================================================================== -->
-  <section class="charts-grid" aria-label="Research Charts">
-    <!-- Chart 1: Vertical SVG Ablation Column Chart -->
-    <div class="card">
+  <!-- 3. Quantitative Figures -->
+  <section class="charts-grid" aria-label="Experimental Figures">
+    <!-- Figure 1: Ablation Study -->
+    <div class="panel">
       <div class="chart-head">
         <div>
-          <h3>PP-PSFE Feature Ablation</h3>
-          <p>{{ ablationSplit === 'random' ? '+7.60% recovery over cleaned core features' : 'Role flags keep 91.70% under time drift' }}</p>
+          <h3>Figure 1: PP-PSFE Feature Ablation</h3>
+          <p>{{ ablationSplit === 'random' ? 'Random stratified 80/20 split (152,386 flows)' : 'Time-ordered 80/20 split testing port drift' }}</p>
         </div>
 
-        <div class="seg-tabs">
-          <button type="button" class="seg-tab" [class.is-active]="ablationSplit === 'random'" (click)="ablationSplit = 'random'">
-            Random Split
+        <div class="tab-group">
+          <button type="button" class="tab-btn" [class.is-active]="ablationSplit === 'random'" (click)="ablationSplit = 'random'">
+            Random split
           </button>
-          <button type="button" class="seg-tab" [class.is-active]="ablationSplit === 'temporal'" (click)="ablationSplit = 'temporal'">
-            Time-Ordered
+          <button type="button" class="tab-btn" [class.is-active]="ablationSplit === 'temporal'" (click)="ablationSplit = 'temporal'">
+            Time-ordered
           </button>
         </div>
       </div>
 
-      <svg class="svg-chart" viewBox="0 0 480 232" role="img" aria-label="Feature ablation accuracy chart">
-        <!-- Y Gridlines (60% to 100%) -->
-        <line x1="46" y1="24" x2="466" y2="24" stroke="var(--border)" stroke-dasharray="3 3" />
+      <svg class="svg-chart" viewBox="0 0 480 232" role="img" aria-label="PP-PSFE feature ablation bar chart">
+        <!-- L-shaped axes and baseline ticks -->
+        <line x1="46" y1="24" x2="46" y2="186" stroke="var(--border-strong)" />
+        <line x1="46" y1="186" x2="466" y2="186" stroke="var(--border-strong)" />
+
+        <line x1="46" y1="24" x2="466" y2="24" stroke="var(--border)" />
         <text x="38" y="28" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">100%</text>
 
-        <line x1="46" y1="60" x2="466" y2="60" stroke="var(--border)" stroke-dasharray="3 3" />
+        <line x1="46" y1="60" x2="466" y2="60" stroke="var(--border)" />
         <text x="38" y="64" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">90%</text>
 
-        <line x1="46" y1="96" x2="466" y2="96" stroke="var(--border)" stroke-dasharray="3 3" />
+        <line x1="46" y1="96" x2="466" y2="96" stroke="var(--border)" />
         <text x="38" y="100" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">80%</text>
 
-        <line x1="46" y1="132" x2="466" y2="132" stroke="var(--border)" stroke-dasharray="3 3" />
+        <line x1="46" y1="132" x2="466" y2="132" stroke="var(--border)" />
         <text x="38" y="136" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">70%</text>
 
-        <line x1="46" y1="168" x2="466" y2="168" stroke="var(--border)" stroke-dasharray="3 3" />
+        <line x1="46" y1="168" x2="466" y2="168" stroke="var(--border)" />
         <text x="38" y="172" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">60%</text>
-
-        <line x1="46" y1="186" x2="466" y2="186" stroke="var(--border-strong)" />
 
         @for (b of activeAblationBars; track b.shortLabel) {
           <rect
@@ -281,9 +240,7 @@
             [attr.y]="b.barY"
             width="54"
             [attr.height]="b.barHeight"
-            rx="6"
-            [attr.fill]="b.tone === 'best' ? 'var(--safe)' : b.tone === 'warn' ? 'var(--threat)' : 'var(--accent)'"
-            opacity="0.9" />
+            [attr.fill]="b.tone === 'best' ? 'var(--safe)' : b.tone === 'warn' ? 'var(--threat)' : 'var(--accent)'" />
           <text
             [attr.x]="b.centerX"
             [attr.y]="b.barY - 6"
@@ -316,58 +273,55 @@
       </svg>
     </div>
 
-    <!-- Chart 2: Speed-vs-Accuracy Pareto Plot OR HTTP Attack F1 Chart -->
-    <div class="card">
+    <!-- Figure 2: Model Benchmark -->
+    <div class="panel">
       <div class="chart-head">
         <div>
-          <h3>{{ chartMode === 'pareto' ? 'Accuracy vs. Speed (4 Models)' : 'HTTP Attack F1 Recovery' }}</h3>
-          <p>{{ chartMode === 'pareto' ? 'Top-left is best (30,478 test flows)' : 'Logistic Regression vs. XGBoost + PP-PSFE' }}</p>
+          <h3>Figure 2: {{ chartMode === 'pareto' ? 'Accuracy vs. Inference Latency' : 'HTTP Attack F1 Comparison' }}</h3>
+          <p>{{ chartMode === 'pareto' ? 'Held-out test split (30,478 flows)' : 'Logistic Regression vs. XGBoost on 5 HTTP classes' }}</p>
         </div>
 
-        <div class="seg-tabs">
-          <button type="button" class="seg-tab" [class.is-active]="chartMode === 'pareto'" (click)="chartMode = 'pareto'">
-            Speed vs Acc
+        <div class="tab-group">
+          <button type="button" class="tab-btn" [class.is-active]="chartMode === 'pareto'" (click)="chartMode = 'pareto'">
+            Speed vs. Acc
           </button>
-          <button type="button" class="seg-tab" [class.is-active]="chartMode === 'httpF1'" (click)="chartMode = 'httpF1'">
+          <button type="button" class="tab-btn" [class.is-active]="chartMode === 'httpF1'" (click)="chartMode = 'httpF1'">
             HTTP F1
           </button>
         </div>
       </div>
 
       @if (chartMode === 'pareto') {
-        <svg class="svg-chart" viewBox="0 0 480 232" role="img" aria-label="Model accuracy versus inference latency scatter plot">
-          <!-- Y Gridlines (82% to 98%) -->
-          <line x1="56" y1="26" x2="456" y2="26" stroke="var(--border)" stroke-dasharray="3 3" />
+        <svg class="svg-chart" viewBox="0 0 480 232" role="img" aria-label="Accuracy vs inference latency scatter plot">
+          <line x1="56" y1="26" x2="56" y2="186" stroke="var(--border-strong)" />
+          <line x1="56" y1="186" x2="456" y2="186" stroke="var(--border-strong)" />
+
+          <line x1="56" y1="26" x2="456" y2="26" stroke="var(--border)" />
           <text x="48" y="30" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">98%</text>
 
-          <line x1="56" y1="66" x2="456" y2="66" stroke="var(--border)" stroke-dasharray="3 3" />
+          <line x1="56" y1="66" x2="456" y2="66" stroke="var(--border)" />
           <text x="48" y="70" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">94%</text>
 
-          <line x1="56" y1="106" x2="456" y2="106" stroke="var(--border)" stroke-dasharray="3 3" />
+          <line x1="56" y1="106" x2="456" y2="106" stroke="var(--border)" />
           <text x="48" y="110" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">90%</text>
 
-          <line x1="56" y1="146" x2="456" y2="146" stroke="var(--border)" stroke-dasharray="3 3" />
+          <line x1="56" y1="146" x2="456" y2="146" stroke="var(--border)" />
           <text x="48" y="150" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">86%</text>
 
-          <line x1="56" y1="186" x2="456" y2="186" stroke="var(--border-strong)" />
           <text x="48" y="190" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">82%</text>
 
-          <!-- X Axis Ticks (0 to 20 ms) -->
-          <text x="56" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">0 ms</text>
-          <text x="156" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">5 ms</text>
-          <text x="256" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">10 ms</text>
-          <text x="356" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">15 ms</text>
-          <text x="456" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">20 ms</text>
-          <text x="256" y="220" text-anchor="middle" font-size="10" fill="var(--text-muted)">← Faster inference (ms per 1,000 flows)</text>
+          <text x="56" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">0</text>
+          <text x="156" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">5</text>
+          <text x="256" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">10</text>
+          <text x="356" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">15</text>
+          <text x="456" y="202" text-anchor="middle" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">20</text>
+          <text x="256" y="220" text-anchor="middle" font-size="10" fill="var(--text-muted)">Inference latency (ms per 1,000 flows)</text>
 
           @for (pt of paretoPoints; track pt.name) {
-            @if (pt.best) {
-              <circle [attr.cx]="pt.cx" [attr.cy]="pt.cy" r="14" fill="var(--safe)" opacity="0.18" />
-            }
             <circle
               [attr.cx]="pt.cx"
               [attr.cy]="pt.cy"
-              [attr.r]="pt.best ? 7 : 5.5"
+              [attr.r]="pt.best ? 6.5 : 5"
               [attr.fill]="pt.best ? 'var(--safe)' : 'var(--accent)'" />
             <text
               [attr.x]="pt.lx"
@@ -389,19 +343,20 @@
         </svg>
       } @else {
         <svg class="svg-chart" viewBox="0 0 480 232" role="img" aria-label="HTTP attack F1 comparison chart">
-          <line x1="46" y1="26" x2="466" y2="26" stroke="var(--border)" stroke-dasharray="3 3" />
+          <line x1="46" y1="26" x2="46" y2="186" stroke="var(--border-strong)" />
+          <line x1="46" y1="186" x2="466" y2="186" stroke="var(--border-strong)" />
+
+          <line x1="46" y1="26" x2="466" y2="26" stroke="var(--border)" />
           <text x="38" y="30" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">1.00</text>
 
-          <line x1="46" y1="66" x2="466" y2="66" stroke="var(--border)" stroke-dasharray="3 3" />
+          <line x1="46" y1="66" x2="466" y2="66" stroke="var(--border)" />
           <text x="38" y="70" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">0.75</text>
 
-          <line x1="46" y1="106" x2="466" y2="106" stroke="var(--border)" stroke-dasharray="3 3" />
+          <line x1="46" y1="106" x2="466" y2="106" stroke="var(--border)" />
           <text x="38" y="110" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">0.50</text>
 
-          <line x1="46" y1="146" x2="466" y2="146" stroke="var(--border)" stroke-dasharray="3 3" />
+          <line x1="46" y1="146" x2="466" y2="146" stroke="var(--border)" />
           <text x="38" y="150" text-anchor="end" font-size="10" fill="var(--text-faint)" font-family="var(--font-mono)">0.25</text>
-
-          <line x1="46" y1="186" x2="466" y2="186" stroke="var(--border-strong)" />
 
           @for (item of httpRecovery; track item.label) {
             <rect
@@ -409,7 +364,6 @@
               [attr.y]="item.lrY"
               width="20"
               [attr.height]="item.lrH"
-              rx="4"
               fill="var(--text-faint)"
               opacity="0.45" />
             <rect
@@ -417,7 +371,6 @@
               [attr.y]="item.xgbY"
               width="20"
               [attr.height]="item.xgbH"
-              rx="4"
               fill="var(--safe)" />
             <text
               [attr.x]="item.centerX + 12"
@@ -442,16 +395,16 @@
         </svg>
 
         <div class="chart-legend">
-          <span><span class="legend-dot" style="background: var(--text-faint); opacity: 0.5;"></span>Logistic Regression</span>
-          <span><span class="legend-dot" style="background: var(--safe);"></span>XGBoost + PP-PSFE</span>
+          <span><span class="legend-swatch" style="background: var(--text-faint); opacity: 0.45;"></span>Logistic Regression</span>
+          <span><span class="legend-swatch" style="background: var(--safe);"></span>XGBoost + PP-PSFE</span>
         </div>
       }
     </div>
   </section>
 
   <footer class="footer">
-    <span><strong>Hamdan Ali</strong> · Roll No. 233120 (Section F-23-BSSE-B) · Air University, Islamabad</span>
-    <span>Edge-IIoTset (IEEE Access, 2022) · 152,386 deduplicated flows · Flask + Angular 22</span>
+    <span>Hamdan Ali (Roll No. 233120, Section F-23-BSSE-B), Air University, Islamabad</span>
+    <span>Edge-IIoTset Benchmark (Ferrag et al., IEEE Access, 2022)</span>
   </footer>
 </main>
 
@@ -460,25 +413,25 @@
   <div class="modal-backdrop" (click)="editorModalOpen = false" role="dialog" aria-modal="true" aria-labelledby="editor-title">
     <div class="modal-card" (click)="$event.stopPropagation()">
       <div class="modal-head">
-        <strong id="editor-title">Customize 62 Packet Features</strong>
+        <strong id="editor-title">Edit 62 Packet Features</strong>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
           <input
             type="search"
             class="field-input"
             style="width: 190px;"
             name="featureSearch"
-            placeholder="Search feature…"
+            placeholder="Filter features"
             [(ngModel)]="searchQuery" />
-          <button type="button" class="btn-ghost" (click)="editorModalOpen = false">Close</button>
+          <button type="button" class="btn" (click)="editorModalOpen = false">Close</button>
         </div>
       </div>
 
       <form class="modal-body" (ngSubmit)="submit(); editorModalOpen = false">
-        <div class="seg-tabs" style="flex-wrap: wrap;">
+        <div class="tab-group" style="flex-wrap: wrap;">
           @for (grp of featureGroups; track grp.id) {
             <button
               type="button"
-              class="seg-tab"
+              class="tab-btn"
               [class.is-active]="selectedGroup === grp.id"
               (click)="selectedGroup = grp.id">
               {{ grp.label }} ({{ groupCount(grp.id) }})
@@ -490,13 +443,13 @@
           @for (field of filteredFields; track field.name) {
             <div class="field-box" [title]="fieldMeta(field.name).hint">
               <div>
-                <div style="font-size: 0.78rem; font-weight: 700;">{{ fieldMeta(field.name).displayLabel }}</div>
+                <div style="font-size: 0.78rem; font-weight: 600;">{{ fieldMeta(field.name).displayLabel }}</div>
                 <div class="mono" style="font-size: 0.68rem; color: var(--text-faint);">{{ field.name }}</div>
               </div>
 
               @if (field.kind === 'category') {
                 <select class="field-input" [name]="field.name" [(ngModel)]="values[field.name]">
-                  <option [ngValue]="null">Select…</option>
+                  <option [ngValue]="null">Select</option>
                   @for (opt of field.options ?? []; track opt) {
                     <option [ngValue]="opt">{{ opt }}</option>
                   }
@@ -514,7 +467,7 @@
         </div>
 
         <div style="margin-top: 1rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
-          <button type="submit" class="btn-primary" [disabled]="loading">Run Classification</button>
+          <button type="submit" class="btn btn-primary" [disabled]="loading">Classify</button>
         </div>
       </form>
     </div>
@@ -527,19 +480,19 @@
     <div class="modal-card" style="max-width: 640px;" (click)="$event.stopPropagation()">
       <div class="modal-head">
         <strong id="json-title">62-Feature JSON Payload</strong>
-        <button type="button" class="btn-ghost" (click)="jsonModalOpen = false">Close</button>
+        <button type="button" class="btn" (click)="jsonModalOpen = false">Close</button>
       </div>
       <div class="modal-body">
         @if (jsonError) {
-          <div class="error-box" style="margin-bottom: 0.75rem;">{{ jsonError }}</div>
+          <div class="error-box">{{ jsonError }}</div>
         }
         <textarea class="json-area" [(ngModel)]="jsonDraft" spellcheck="false" aria-label="62-feature JSON payload"></textarea>
       </div>
       <div class="modal-foot">
-        <button type="button" class="btn-ghost" (click)="copyJson()">{{ jsonCopied ? 'Copied!' : 'Copy' }}</button>
+        <button type="button" class="btn" (click)="copyJson()">{{ jsonCopied ? 'Copied' : 'Copy' }}</button>
         <div style="display: flex; gap: 0.5rem;">
-          <button type="button" class="btn-ghost" (click)="applyJsonPayload(false)">Apply</button>
-          <button type="button" class="btn-primary" (click)="applyJsonPayload(true)">Apply &amp; Classify</button>
+          <button type="button" class="btn" (click)="applyJsonPayload(false)">Apply</button>
+          <button type="button" class="btn btn-primary" (click)="applyJsonPayload(true)">Apply and classify</button>
         </div>
       </div>
     </div>

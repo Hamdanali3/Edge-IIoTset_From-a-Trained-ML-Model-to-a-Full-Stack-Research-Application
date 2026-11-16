@@ -90,17 +90,17 @@ const STATIC_PRESET_RESULTS: Record<string, PredictionResponse> = {
 };
 
 const PRESET_LABELS: Record<string, { title: string; tag: string }> = {
-  Normal: { title: 'Normal Telemetry', tag: 'MQTT :1883' },
-  DDoS_TCP: { title: 'DDoS TCP Flood', tag: 'TCP :80' },
-  SQL_injection: { title: 'SQL Injection', tag: 'HTTP :80' },
-  Ransomware: { title: 'Ransomware C2', tag: 'Port :4321' },
+  Normal: { title: 'Normal Telemetry', tag: 'MQTT, 1883' },
+  DDoS_TCP: { title: 'DDoS TCP Flood', tag: 'TCP, 80' },
+  SQL_injection: { title: 'SQL Injection', tag: 'HTTP, 80' },
+  Ransomware: { title: 'Ransomware', tag: 'Port 4321' },
 };
 
 const SHORT_CAPTIONS: Record<string, string> = {
-  Normal: 'Clean MQTT broker session on port 1883 with zero threat markers.',
-  DDoS_TCP: 'High-rate TCP RST/ACK burst on port 80 with empty payload.',
-  SQL_injection: 'HTTP query carrying SQL syntax markers (psfe_app_sqli_flag=1).',
-  Ransomware: 'High-entropy encrypted TCP flow targeting C2 port 4321.',
+  Normal: 'MQTT telemetry flow on port 1883 without injection or C2 markers.',
+  DDoS_TCP: 'High-rate TCP RST/ACK control traffic targeting port 80 with empty payload.',
+  SQL_injection: 'HTTP request with SQL injection tokens (psfe_app_sqli_flag=1).',
+  Ransomware: 'Encrypted TCP session targeting port 4321 with elevated payload entropy.',
 };
 
 function buildAblationBars(
